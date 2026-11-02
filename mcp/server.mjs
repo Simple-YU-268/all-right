@@ -1,13 +1,15 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
-import { realpath, writeFile } from 'node:fs/promises'
+import { mkdir, realpath, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { parseBank } from '../src/domain/parseBank.ts'
 import { TEMPLATE, FIELD_ALIASES } from '../src/domain/bankTemplate.ts'
 
-const outputDirectory = await realpath(process.env.ALLRIGHT_OUTPUT_DIR || process.cwd())
-const server = new McpServer({ name: 'allright-mcp', version: '0.1.0' })
+const requestedOutput = process.env.ALLRIGHT_OUTPUT_DIR || process.cwd()
+await mkdir(requestedOutput, { recursive: true })
+const outputDirectory = await realpath(requestedOutput)
+const server = new McpServer({ name: 'allright-mcp', version: '0.4.0' })
 const inputSchema = { bank: z.unknown().describe('Source bank object or question array; never invent missing answers.') }
 const response = (data, isError = false) => ({
   content: [{ type: 'text', text: JSON.stringify(data, null, 2) }],
@@ -16,7 +18,18 @@ const response = (data, isError = false) => ({
 
 function inspect(bank) {
   bank = structuredClone(bank)
-  const sourceQuestions = Array.isArray(bank) ? bank : bank?.questions
+  const sourceQuestions = Array.isArray(bank) ? bank : bank && ['questions', 'items', 'data', 'list', '题目', '试题'].map(key => bank[key]).find(Array.isArray)
+  if (Array.isArray(sourceQuestions)) {
+    const used = new Set(sourceQuestions.map(q => q && (q.id ?? q.key ?? q.code ?? q['编号'] ?? q['题号'])).filter(Boolean).map(String))
+    sourceQuestions.forEach((q, i) => {
+      if (!q || typeof q !== 'object' || Array.isArray(q)) return
+      if (['id', 'key', 'code', '编号', '题号'].some(key => q[key] !== undefined && q[key] !== '')) return
+      let id = `q${i + 1}`
+      while (used.has(id)) id += '_'
+      q.id = id
+      used.add(id)
+    })
+  }
   const judgeAnswers = new Map()
   const judgeErrors = []
   if (Array.isArray(sourceQuestions)) sourceQuestions.forEach((question, index) => {
@@ -56,13 +69,15 @@ function inspect(bank) {
     if (question.options.some(option => !option.text)) {
       errors.push({ code: 'EMPTY_OPTION', path: `${prefix}.options`, message: 'Every text option needs content.' })
     }
+    if (question.options.length < 2) errors.push({ code: 'TOO_FEW_OPTIONS', path: `${prefix}.options`, message: 'At least two options are required.' })
     if (question.type === 'judge') {
       if (judgeAnswers.has(question.id)) question.answer = judgeAnswers.get(question.id)
       else errors.push({ code: 'JUDGE_REVIEW', path: `${prefix}.answer`, message: 'Judge questions require explicit type and canonical answer.' })
     }
   }
   if (!parsed.questions.length && !errors.length) errors.push({ code: 'EMPTY_BANK', path: 'questions', message: 'At least one question is required.' })
-  return { valid: errors.length === 0, errors, warnings: parsed.warnings, bank: { name: parsed.name, questions: parsed.questions } }
+  return { valid: errors.length === 0, sourceCount: sourceQuestions?.length || 0, acceptedCount: parsed.questions.length,
+    errors, warnings: parsed.warnings, bank: { name: parsed.name, questions: parsed.questions } }
 }
 
 server.registerTool('get_bank_spec', {
@@ -91,7 +106,7 @@ server.registerTool('validate_bank', {
 
 server.registerTool('build_bank_file', {
   description: 'Validate and create a text JSON bank in the configured output directory. Never overwrites existing files.',
-  inputSchema: { ...inputSchema, filename: z.string().regex(/^[a-zA-Z0-9_-]{1,100}\.json$/) },
+  inputSchema: { ...inputSchema, filename: z.string().max(120).regex(/^[\p{L}\p{N}_-]+\.json$/u).refine(name => !/^(con|prn|aux|nul|com[1-9]|lpt[1-9])\.json$/i.test(name), 'Reserved Windows filename') },
 }, async ({ bank, filename }) => {
   const result = inspect(bank)
   if (!result.valid) return response(result, true)

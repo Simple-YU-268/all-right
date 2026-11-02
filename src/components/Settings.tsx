@@ -10,6 +10,7 @@ import type { Workspace } from '../domain/types'
 import type { Route } from '../App'
 import { CopyButton, Segmented } from './bits'
 import { ChapterGuide } from './ChapterGuide'
+import { McpSettings } from './McpSettings'
 
 const MOTION_OPTIONS: { value: MotionPref; label: string }[] = [
   { value: 'full', label: '开' },
@@ -64,6 +65,7 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
       <div className="content">
         <div className="content__inner">
           <div className="settings">
+            <McpSettings />
             <section className="panel">
               <header className="panel__head">
                 <h2 className="panel__title">AI 转译用 JSON 模板</h2>

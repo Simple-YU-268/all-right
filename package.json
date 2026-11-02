@@ -1,7 +1,7 @@
 {
   "name": "all-right",
   "private": true,
-  "version": "0.3.1",
+  "version": "0.4.0",
   "type": "module",
   "description": "ALL RIGHT 全对 · 电子刷题台：导入 JSON 题库，按分类或随机抽题，错题自动收进错题本，看板追踪进度与正确率。",
   "author": "ALL RIGHT 全对",
@@ -24,7 +24,8 @@
     "icon": "node scripts/make-icon.mjs",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build",
+    "tauri:build": "npm run build:mcp-native && tauri build",
+    "build:mcp-native": "node scripts/build-mcp-native.mjs",
     "tauri:icon": "npm run icon && tauri icon build/icon.png"
   },
   "dependencies": {

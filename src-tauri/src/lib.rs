@@ -162,6 +162,21 @@ fn list_assets(app: AppHandle) -> Result<Vec<String>, String> {
     Ok(ids)
 }
 
+#[tauri::command]
+fn get_mcp_config(app: AppHandle) -> Result<serde_json::Value, String> {
+    let executable = app.path().resource_dir().map_err(|error| error.to_string())?
+        .join("resources").join("allright-mcp.exe");
+    if !executable.is_file() {
+        return Err("未找到内置 MCP，请使用完整安装版或先构建 MCP 程序。".into());
+    }
+    let output = app.path().app_data_dir().map_err(|error| error.to_string())?.join("mcp-output");
+    fs::create_dir_all(&output).map_err(|error| error.to_string())?;
+    Ok(serde_json::json!({ "mcpServers": { "allright": {
+        "command": executable.to_string_lossy(),
+        "env": { "ALLRIGHT_OUTPUT_DIR": output.to_string_lossy() }
+    }}}))
+}
+
 pub fn run() {
     tauri::Builder::default()
         .manage(Mutex::new(()))
@@ -174,7 +189,8 @@ pub fn run() {
             save_asset,
             read_asset,
             delete_assets,
-            list_assets
+            list_assets,
+            get_mcp_config
         ])
         .run(tauri::generate_context!())
         .expect("无法启动 ALL RIGHT 全对");
