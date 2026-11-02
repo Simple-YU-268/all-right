@@ -1,0 +1,473 @@
+{
+  "name": "计算机网络 · 考研真题 2024（示例）",
+  "questions": [
+    {
+      "id": "cn-001",
+      "type": "single",
+      "category": "第一章 体系结构",
+      "stem": "OSI 参考模型中，负责在相邻结点之间无差错地传输数据帧的是哪一层？",
+      "options": [
+        { "key": "A", "text": "网络层" },
+        { "key": "B", "text": "数据链路层" },
+        { "key": "C", "text": "传输层" },
+        { "key": "D", "text": "会话层" }
+      ],
+      "answer": ["B"],
+      "explanation": "数据链路层的核心任务是成帧、物理寻址、流量控制与差错控制，保证相邻结点之间数据帧的无差错传输。",
+      "difficulty": 1,
+      "tags": ["必考", "基础"]
+    },
+    {
+      "id": "cn-002",
+      "type": "single",
+      "category": "第一章 体系结构",
+      "stem": "TCP/IP 体系结构中，网络接口层之上、应用层之下对应的协议层是？",
+      "options": [
+        { "key": "A", "text": "网际层" },
+        { "key": "B", "text": "网络层" },
+        { "key": "C", "text": "传输层" },
+        { "key": "D", "text": "会话层" }
+      ],
+      "answer": ["C"],
+      "explanation": "TCP/IP 四层模型自下而上为网络接口层、网际层、传输层、应用层；传输层夹在网际层与应用层之间。",
+      "difficulty": 1,
+      "tags": ["基础"]
+    },
+    {
+      "id": "cn-003",
+      "type": "multiple",
+      "category": "第一章 体系结构",
+      "stem": "下列关于 OSI 各层功能的说法，正确的有哪些？",
+      "options": [
+        { "key": "A", "text": "会话层负责建立、管理和终止会话" },
+        { "key": "B", "text": "表示层负责数据的格式转换与加密" },
+        { "key": "C", "text": "网络层负责路由选择与分组转发" },
+        { "key": "D", "text": "传输层只提供无连接的数据报服务" }
+      ],
+      "answer": ["A", "B", "C"],
+      "explanation": "传输层既提供可靠面向连接的服务（TCP），也提供无连接的数据报服务（UDP），D 项错误。",
+      "difficulty": 3,
+      "tags": ["多选", "易混"]
+    },
+    {
+      "id": "cn-004",
+      "type": "judge",
+      "category": "第一章 体系结构",
+      "stem": "分层体系结构中，下层向上层提供的服务是同步的，上层对下层的实现是透明的。",
+      "options": [
+        { "key": "正确", "text": "正确" },
+        { "key": "错误", "text": "错误" }
+      ],
+      "answer": ["正确"],
+      "explanation": "这是分层模型的基本原则：下层向上层提供服务，上层不必了解下层实现细节。",
+      "difficulty": 2,
+      "tags": ["判断"]
+    },
+    {
+      "id": "cn-005",
+      "type": "single",
+      "category": "第一章 体系结构",
+      "stem": "封装与解封装发生在协议栈的哪个部位？",
+      "options": [
+        { "key": "A", "text": "仅在发送端" },
+        { "key": "B", "text": "仅在接收端" },
+        { "key": "C", "text": "发送端逐层封装，接收端逐层解封装" },
+        { "key": "D", "text": "由物理层自动完成" }
+      ],
+      "answer": ["C"],
+      "explanation": "数据自上而下每层加一个首部（封装），接收端自下而上每层去掉一个首部（解封装）。",
+      "difficulty": 2,
+      "tags": []
+    },
+    {
+      "id": "cn-006",
+      "type": "single",
+      "category": "第二章 物理层",
+      "stem": "奈奎斯特采样定理指出，一个频带宽度为 W 的信道，其无码间串扰的最高数据率为？",
+      "options": [
+        { "key": "A", "text": "W Baud" },
+        { "key": "B", "text": "2W Baud" },
+        { "key": "C", "text": "W bit/s" },
+        { "key": "D", "text": "2W bit/s" }
+      ],
+      "answer": ["B"],
+      "explanation": "奈奎斯特定理给出理想低通信道的极限码元传输速率 2W Baud；香农定理则给出有噪声时的极限信息速率。",
+      "difficulty": 3,
+      "tags": ["公式", "高频"]
+    },
+    {
+      "id": "cn-007",
+      "type": "single",
+      "category": "第二章 物理层",
+      "stem": "香农定理给出的信道极限信息传输速率 C = W · log₂(1 + S/N)，其中 S/N 代表什么？",
+      "options": [
+        { "key": "A", "text": "信号功率与噪声功率之比" },
+        { "key": "B", "text": "采样频率与量化精度" },
+        { "key": "C", "text": "信道容量与时延" },
+        { "key": "D", "text": "发送功率与线路损耗" }
+      ],
+      "answer": ["A"],
+      "explanation": "S/N 为信噪比，即信号功率与噪声功率之比；信噪比越高，理论上限越高。",
+      "difficulty": 2,
+      "tags": ["公式"]
+    },
+    {
+      "id": "cn-008",
+      "type": "multiple",
+      "category": "第二章 物理层",
+      "stem": "下列编码方式中，属于实际使用的编码方案有哪些？",
+      "options": [
+        { "key": "A", "text": "曼彻斯特编码" },
+        { "key": "B", "text": "差分曼彻斯特编码" },
+        { "key": "C", "text": "海明码" },
+        { "key": "D", "text": "归零码" }
+      ],
+      "answer": ["A", "B", "D"],
+      "explanation": "海明码属于纠错编码，不属于物理层的线路编码方案；曼彻斯特、差分曼彻斯特与归零码都是常见线路编码。",
+      "difficulty": 3,
+      "tags": ["多选", "易混"]
+    },
+    {
+      "id": "cn-009",
+      "type": "judge",
+      "category": "第二章 物理层",
+      "stem": "单工通信只能单向传输数据，半双工可以双向但不能同时，双工可以同时双向。",
+      "options": [
+        { "key": "正确", "text": "正确" },
+        { "key": "错误", "text": "错误" }
+      ],
+      "answer": ["正确"],
+      "explanation": "三种通信方向依次为单向、交替双向、同时双向，定义对应正确。",
+      "difficulty": 1,
+      "tags": ["判断"]
+    },
+    {
+      "id": "cn-010",
+      "type": "single",
+      "category": "第二章 物理层",
+      "stem": "将模拟信号数字化的基本步骤依次是？",
+      "options": [
+        { "key": "A", "text": "编码 → 调制 → 解调" },
+        { "key": "B", "text": "采样 → 量化 → 编码" },
+        { "key": "C", "text": "量化 → 采样 → 编码" },
+        { "key": "D", "text": "调制 → 采样 → 译码" }
+      ],
+      "answer": ["B"],
+      "explanation": "模拟信号数字化依次经过采样、量化、编码三步，其速率取决于采样定理。",
+      "difficulty": 2,
+      "tags": []
+    },
+    {
+      "id": "cn-011",
+      "type": "single",
+      "category": "第三章 数据链路层",
+      "stem": "以太网交换机进行转发时，主要依据帧中的哪个字段？",
+      "options": [
+        { "key": "A", "text": "源 MAC 地址" },
+        { "key": "B", "text": "目的 MAC 地址" },
+        { "key": "C", "text": "IP 地址" },
+        { "key": "D", "text": "端口号" }
+      ],
+      "answer": ["B"],
+      "explanation": "交换机是二层设备，按帧的目的 MAC 地址查表转发，与源地址无关。",
+      "difficulty": 2,
+      "tags": ["必考"]
+    },
+    {
+      "id": "cn-012",
+      "type": "multiple",
+      "category": "第三章 数据链路层",
+      "stem": "下列属于数据链路层功能的有哪些？",
+      "options": [
+        { "key": "A", "text": "封装成帧" },
+        { "key": "B", "text": "流量控制" },
+        { "key": "C", "text": "差错控制" },
+        { "key": "D", "text": "路由选择" }
+      ],
+      "answer": ["A", "B", "C"],
+      "explanation": "路由选择是网络层的职责；封装成帧、物理寻址、流量与差错控制均属数据链路层。",
+      "difficulty": 2,
+      "tags": ["多选"]
+    },
+    {
+      "id": "cn-013",
+      "type": "single",
+      "category": "第三章 数据链路层",
+      "stem": "CSMA/CD 协议要能够检测碰撞，前提条件是？",
+      "options": [
+        { "key": "A", "text": "传播时延远大于发送时延" },
+        { "key": "B", "text": "发送时延远大于传播时延" },
+        { "key": "C", "text": "信道是全双工的" },
+        { "key": "D", "text": "使用光纤作为介质" }
+      ],
+      "answer": ["B"],
+      "explanation": "只有当发送时延大于两倍传播时延时，发送方才能在发送完毕前检测到最远端的碰撞。",
+      "difficulty": 3,
+      "tags": ["高频", "易混"]
+    },
+    {
+      "id": "cn-014",
+      "type": "judge",
+      "category": "第三章 数据链路层",
+      "stem": "交换机自学习的过程是依据收到帧的源 MAC 地址建立转发表。",
+      "options": [
+        { "key": "正确", "text": "正确" },
+        { "key": "错误", "text": "错误" }
+      ],
+      "answer": ["正确"],
+      "explanation": "自学习用源地址反推端口，转发时才用目的地址查表，二者方向相反。",
+      "difficulty": 3,
+      "tags": ["判断", "易混"]
+    },
+    {
+      "id": "cn-015",
+      "type": "single",
+      "category": "第四章 网络层",
+      "stem": "IP 地址 192.168.10.130，子网掩码 /26，对应的广播地址是？",
+      "options": [
+        { "key": "A", "text": "192.168.10.191" },
+        { "key": "B", "text": "192.168.10.255" },
+        { "key": "C", "text": "192.168.10.127" },
+        { "key": "D", "text": "192.168.10.129" }
+      ],
+      "answer": ["A"],
+      "explanation": "/26 的主机位为 6 位，块大小 64，地址落在 128–191 区间，广播地址为 192.168.10.191。",
+      "difficulty": 3,
+      "tags": ["计算"]
+    },
+    {
+      "id": "cn-016",
+      "type": "single",
+      "category": "第四章 网络层",
+      "stem": "ARP 协议的作用是？",
+      "options": [
+        { "key": "A", "text": "由 IP 地址解析出 MAC 地址" },
+        { "key": "B", "text": "由 MAC 地址解析出 IP 地址" },
+        { "key": "C", "text": "由域名解析出 IP 地址" },
+        { "key": "D", "text": "为主机自动分配 IP 地址" }
+      ],
+      "answer": ["A"],
+      "explanation": "ARP 在同一局域网内由 IP 求 MAC；RARP 方向相反，DHCP 才是自动分配地址。",
+      "difficulty": 2,
+      "tags": ["必考"]
+    },
+    {
+      "id": "cn-017",
+      "type": "multiple",
+      "category": "第四章 网络层",
+      "stem": "下列属于 IPv4 首部固定部分字段的有哪些？",
+      "options": [
+        { "key": "A", "text": "版本号" },
+        { "key": "B", "text": "首部长度" },
+        { "key": "C", "text": "生存时间 TTL" },
+        { "key": "D", "text": "端口号" }
+      ],
+      "answer": ["A", "B", "C"],
+      "explanation": "端口号属于传输层 TCP/UDP 首部，不在 IP 首部中。",
+      "difficulty": 2,
+      "tags": ["多选"]
+    },
+    {
+      "id": "cn-018",
+      "type": "single",
+      "category": "第四章 网络层",
+      "stem": "路由器转发分组时，其最长前缀匹配查找的是？",
+      "options": [
+        { "key": "A", "text": "路由表中的目的网络前缀" },
+        { "key": "B", "text": "ARP 表中的 MAC 地址" },
+        { "key": "C", "text": "分组首部的端口号" },
+        { "key": "D", "text": "DNS 缓存中的记录" }
+      ],
+      "answer": ["A"],
+      "explanation": "最长前缀匹配在路由表的目的网络前缀中进行，掩码越长优先级越高。",
+      "difficulty": 3,
+      "tags": []
+    },
+    {
+      "id": "cn-019",
+      "type": "judge",
+      "category": "第五章 运输层",
+      "stem": "UDP 首部只有源端口、目的端口、长度和校验和四个字段，因此开销小、时延低。",
+      "options": [
+        { "key": "正确", "text": "正确" },
+        { "key": "错误", "text": "错误" }
+      ],
+      "answer": ["正确"],
+      "explanation": "UDP 首部固定为 8 字节，TCP 首部最少 20 字节，故 UDP 开销更小。",
+      "difficulty": 1,
+      "tags": ["判断"]
+    },
+    {
+      "id": "cn-020",
+      "type": "single",
+      "category": "第五章 运输层",
+      "stem": "TCP 建立连接采用三次握手，其根本目的是？",
+      "options": [
+        { "key": "A", "text": "防止已失效的连接请求报文段突然到达" },
+        { "key": "B", "text": "提高数据传输的速率" },
+        { "key": "C", "text": "压缩报文首部" },
+        { "key": "D", "text": "实现拥塞控制" }
+      ],
+      "answer": ["A"],
+      "explanation": "三次握手使双方同步初始序号，并让已失效的请求可被识别，核心是防止旧报文引起错误。",
+      "difficulty": 3,
+      "tags": ["必考", "高频"]
+    },
+    {
+      "id": "cn-021",
+      "type": "single",
+      "category": "第五章 运输层",
+      "stem": "TCP 拥塞控制中，慢开始阶段拥塞窗口 cwnd 的增长方式是？",
+      "options": [
+        { "key": "A", "text": "每经过一个 RTT 加 1" },
+        { "key": "B", "text": "每经过一个 RTT 加倍" },
+        { "key": "C", "text": "线性增长 1 个 MSS" },
+        { "key": "D", "text": "保持不变" }
+      ],
+      "answer": ["B"],
+      "explanation": "慢开始阶段 cwnd 指数增长，每个 RTT 翻倍；进入拥塞避免阶段后改为每 RTT 加 1 个 MSS。",
+      "difficulty": 3,
+      "tags": ["高频"]
+    },
+    {
+      "id": "cn-022",
+      "type": "multiple",
+      "category": "第五章 运输层",
+      "stem": "TCP 能够提供哪些服务？",
+      "options": [
+        { "key": "A", "text": "面向连接" },
+        { "key": "B", "text": "可靠交付" },
+        { "key": "C", "text": "流量控制" },
+        { "key": "D", "text": "无连接的数据报传输" }
+      ],
+      "answer": ["A", "B", "C"],
+      "explanation": "TCP 面向连接且可靠，具备流量控制；无连接数据报是 UDP 的特性。",
+      "difficulty": 2,
+      "tags": ["多选"]
+    },
+    {
+      "id": "cn-023",
+      "type": "single",
+      "category": "第五章 运输层",
+      "stem": "TCP 的拥塞窗口与发送窗口之间的关系是？",
+      "options": [
+        { "key": "A", "text": "发送窗口 = 拥塞窗口" },
+        { "key": "B", "text": "发送窗口 = min(接收窗口, 拥塞窗口)" },
+        { "key": "C", "text": "发送窗口 = 接收窗口 + 拥塞窗口" },
+        { "key": "D", "text": "发送窗口 = 拥塞窗口 + 1" }
+      ],
+      "answer": ["B"],
+      "explanation": "实际发送窗口取接收方通告窗口与拥塞窗口中的较小者。",
+      "difficulty": 4,
+      "tags": ["高频", "易混"]
+    },
+    {
+      "id": "cn-024",
+      "type": "judge",
+      "category": "第五章 运输层",
+      "stem": "TCP 的流量控制与拥塞控制是同一件事。",
+      "options": [
+        { "key": "正确", "text": "正确" },
+        { "key": "错误", "text": "错误" }
+      ],
+      "answer": ["错误"],
+      "explanation": "流量控制针对接收方处理能力，拥塞控制针对网络中路由器与链路的拥塞状况，二者机理不同。",
+      "difficulty": 2,
+      "tags": ["判断", "易混"]
+    },
+    {
+      "id": "cn-025",
+      "type": "single",
+      "category": "第六章 应用层",
+      "stem": "DNS 协议默认使用的传输层协议与端口是？",
+      "options": [
+        { "key": "A", "text": "TCP 53" },
+        { "key": "B", "text": "UDP 53" },
+        { "key": "C", "text": "UDP 80" },
+        { "key": "D", "text": "TCP 80" }
+      ],
+      "answer": ["B"],
+      "explanation": "DNS 默认使用 UDP 53；当响应超过长度限制或做区域传送时，才改用 TCP 53。",
+      "difficulty": 3,
+      "tags": ["必考"]
+    },
+    {
+      "id": "cn-026",
+      "type": "multiple",
+      "category": "第六章 应用层",
+      "stem": "HTTP/1.1 中属于持久连接特点的有哪些？",
+      "options": [
+        { "key": "A", "text": "多个请求可共用一条 TCP 连接" },
+        { "key": "B", "text": "默认使用流水线传输" },
+        { "key": "C", "text": "减少 TCP 三次握手的开销" },
+        { "key": "D", "text": "支持分块传输编码" }
+      ],
+      "answer": ["A", "C", "D"],
+      "explanation": "HTTP/1.1 默认持久连接并支持分块传输，但流水线并非默认启用。",
+      "difficulty": 3,
+      "tags": ["多选"]
+    },
+    {
+      "id": "cn-027",
+      "type": "single",
+      "category": "第六章 应用层",
+      "stem": "SMTP 用于什么场合？",
+      "options": [
+        { "key": "A", "text": "从邮件服务器取邮件" },
+        { "key": "B", "text": "邮件服务器之间传送邮件" },
+        { "key": "C", "text": "查询域名记录" },
+        { "key": "D", "text": "传输网页内容" }
+      ],
+      "answer": ["B"],
+      "explanation": "SMTP 负责推送（提交与中继），而 POP3 与 IMAP 才用于取信。",
+      "difficulty": 2,
+      "tags": ["易混"]
+    },
+    {
+      "id": "cn-028",
+      "type": "judge",
+      "category": "第六章 应用层",
+      "stem": "FTP 的控制连接与数据连接使用同一个端口号。",
+      "options": [
+        { "key": "正确", "text": "正确" },
+        { "key": "错误", "text": "错误" }
+      ],
+      "answer": ["错误"],
+      "explanation": "FTP 使用两条 TCP 连接：控制连接固定为 21 端口，数据连接使用 20 端口或动态端口。",
+      "difficulty": 3,
+      "tags": ["判断"]
+    },
+    {
+      "id": "cn-029",
+      "type": "single",
+      "category": "第六章 应用层",
+      "stem": "在 HTTP 响应中，状态码 304 表示什么？",
+      "options": [
+        { "key": "A", "text": "请求成功" },
+        { "key": "B", "text": "未修改，可以使用缓存" },
+        { "key": "C", "text": "资源永久移动" },
+        { "key": "D", "text": "服务器内部错误" }
+      ],
+      "answer": ["B"],
+      "explanation": "304 Not Modified 表示资源未变化，客户端可继续使用本地缓存副本。",
+      "difficulty": 2,
+      "tags": []
+    },
+    {
+      "id": "cn-030",
+      "type": "multiple",
+      "category": "第六章 应用层",
+      "stem": "下列协议中属于应用层协议的有哪些？",
+      "options": [
+        { "key": "A", "text": "HTTP" },
+        { "key": "B", "text": "FTP" },
+        { "key": "C", "text": "SMTP" },
+        { "key": "D", "text": "IP" }
+      ],
+      "answer": ["A", "B", "C"],
+      "explanation": "IP 属于网际层（网络层），其余三者都是应用层协议。",
+      "difficulty": 1,
+      "tags": ["多选", "基础"]
+    }
+  ]
+}

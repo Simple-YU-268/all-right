@@ -1,0 +1,186 @@
+{
+  "title": "选择视觉方向",
+  "question": "抽签落在「蜡纸油印卷子」。保留它、换一张，还是重抽？",
+  "options": [
+    {
+      "id": "assigned",
+      "kind": "assigned",
+      "label": "蜡纸油印卷子",
+      "kicker": "THE ROLL",
+      "lineage": "蜡纸刻字 · 油印试卷",
+      "thesis": "把每次练习当成一张油印卷子：靛蓝墨印在纸面上，错的地方留一道朱红批改。",
+      "palette": ["#F5F4F1", "#2A3E8F", "#C0392B", "#2E7D5B", "#5A5F66"],
+      "materials": ["蜡纸刻字", "油墨浓淡", "发丝分隔线"],
+      "viewport": "左侧导航 + 顶部表单式数据栏 + 墨阶柱状图与分类正确率阶梯条。",
+      "risk": "靛蓝压过纸白会读成冷调后台；朱红必须只在错题处出现，方向才立得住。",
+      "raised": [
+        {
+          "from": "challenger-saville",
+          "raise": "看板只让一张主图占据主场，其余是表格与读数，不是统计卡片墙。"
+        },
+        {
+          "from": "challenger-zoo",
+          "raise": "选项键用色键胶囊承载，靠形状与位置区分，不靠边框。"
+        },
+        {
+          "from": "challenger-character",
+          "raise": "只有当前活跃项吃满饱和色，其余保持中性。"
+        },
+        {
+          "from": "challenger-botanical",
+          "raise": "每个状态都有固定命名的小标签（生疏／熟悉／掌握），不用色相代称。"
+        },
+        {
+          "from": "challenger-ikeda",
+          "raise": "全屏反相只发生一次：练习结束结算的那一刻，纸面翻成负片。"
+        }
+      ],
+      "html": ".impeccable/mocks/decision/assigned.html",
+      "comp": ".impeccable/mocks/decision/assigned.webp"
+    },
+    {
+      "id": "pick",
+      "kind": "pick",
+      "label": "手写错题本 · 红笔朱批",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "学生错题本 · 老师红笔批改",
+      "thesis": "红笔是产品里唯一的彩色主角：答对盖圈，答错打叉划掉，解析写进右侧批注栏。",
+      "palette": ["#F7F3E8", "#1C1B19", "#C0392B", "#2E7D5B"],
+      "materials": ["道林纸", "红笔", "手写批注"],
+      "viewport": "左侧导航 + 数据栏 + 右侧带朱红批注栏的错题列表。",
+      "risk": "这是错题类产品最直觉的联想，熟悉到近乎默认——稳妥，但可能没有记忆点。",
+      "html": ".impeccable/mocks/decision/pick.html",
+      "comp": ".impeccable/mocks/decision/pick.webp"
+    },
+    {
+      "id": "grounded",
+      "kind": "grounded",
+      "label": "教辅习题册 · 密排对照栏",
+      "lineage": "中国教辅习题册",
+      "thesis": "把看板当作一页印刷习题：连续编号、密排条目、右侧窄对照栏放读数。",
+      "palette": ["#FBFAF7", "#17181A", "#B4432F", "#2C4A8C", "#2F6B4F"],
+      "materials": ["印刷书页", "分类色签", "连续编号"],
+      "viewport": "左侧导航 + 数据栏 + 连续编号的分类与错题对照列表。",
+      "risk": "密排印刷感容易让看板失去层级，远看是一堵字墙。",
+      "html": ".impeccable/mocks/decision/grounded.html",
+      "comp": ".impeccable/mocks/decision/grounded.webp"
+    },
+    {
+      "id": "challenger-cassette",
+      "kind": "challenger",
+      "catalogId": "vernacular-ephemera-cassette-j-card",
+      "label": "磁带内衬卡 · 右缘读数带",
+      "verdict": "competitive",
+      "lineage": "磁带纸质内衬卡",
+      "thesis": "每个条目最右缘都有一列右对齐的读数，像手写清单上的时长列。",
+      "palette": ["#FBFBF9", "#2B4B8F", "#8B8B8B", "#C8A02C", "#C0392B"],
+      "materials": ["圆珠笔", "印刷横线", "手写块状标题"],
+      "viewport": "左侧导航 + 数据栏 + 右侧一条严格对齐的右缘读数带。",
+      "case": "融合干净：每道题带一个右对齐用时与正确率，列表天然可扫读；输在识别度——手写清单不像备考工具。",
+      "risk": "手写感一旦沦为装饰就变噪点；秩序全靠那条严格对齐的读数带撑着。",
+      "html": ".impeccable/mocks/decision/challenger-cassette.html",
+      "comp": ".impeccable/mocks/decision/challenger-cassette.webp",
+      "hero": "https://impeccable.style/worlds/cards/vernacular-ephemera-cassette-j-card-hero.webp"
+    },
+    {
+      "id": "challenger-saville",
+      "kind": "challenger",
+      "catalogId": "brand-identity-canon-saville-catalog-sleeve",
+      "label": "厂牌目录 · 编码色条",
+      "verdict": "declined",
+      "lineage": "厂牌唱片目录内页",
+      "thesis": "不用文字命名，改用一排色块编码，只有当前项被解码成全色。",
+      "palette": ["#101418", "#F2F2F0", "#E8452C"],
+      "materials": ["哑黑纸", "白色发丝线", "编码色条"],
+      "viewport": "深色底 + 一块白线图占据主场，色条替代标签。",
+      "case": "融合不佳：备考人群不与唱片目录产生认同，且深色底不适合长时间阅读题面。",
+      "risk": "读作故作姿态的暗色设计工具。",
+      "kept": "一块图表独占主场，其余交给表格与读数。",
+      "hero": "https://impeccable.style/worlds/cards/brand-identity-canon-saville-catalog-sleeve-hero.webp"
+    },
+    {
+      "id": "challenger-zoo",
+      "kind": "challenger",
+      "catalogId": "aww2-zoo-gardens-guide-map",
+      "label": "园导图 · 平涂色块",
+      "verdict": "declined",
+      "lineage": "动物园导览图",
+      "thesis": "每个区域是一块平涂色块，靠海岸线分界，色块可以在中间开口。",
+      "palette": ["#8ED462", "#F5F1E4", "#F5E211", "#FF705D", "#2BA0FF"],
+      "materials": ["平涂色块", "胶囊控件"],
+      "viewport": "一屏一个大色块，控件是彩色胶囊。",
+      "case": "融合不佳：地图隐喻会顶替导航，牺牲刷题软件的清晰度。",
+      "risk": "把工作界面变成一张地图，属于世界冒充产品。",
+      "kept": "选项键用色键胶囊承载，不靠边框区分。",
+      "hero": "https://impeccable.style/worlds/cards/aww2-zoo-gardens-guide-map-hero.webp"
+    },
+    {
+      "id": "challenger-character",
+      "kind": "challenger",
+      "catalogId": "pop-culture-shelf-character-goods-catalog",
+      "label": "角色周边目录",
+      "verdict": "declined",
+      "lineage": "手办周边目录页",
+      "thesis": "一格格圆润角色按人气排序，每格一个名牌与一句性格注释。",
+      "palette": ["#F4EFE6", "#FF8FA3", "#8ED9C4", "#FFD166"],
+      "materials": ["柔和粉彩", "白色描边", "缎带色"],
+      "viewport": "粉彩格子阵列，排名决定顺序。",
+      "case": "融合不佳：玩偶语汇与备考场景冲突，会把严肃的学习工具变成儿童应用。",
+      "risk": "读作游戏化的贴纸墙，失去可信度。",
+      "kept": "只有当前活跃项吃满饱和色，其余保持中性。",
+      "hero": "https://impeccable.style/worlds/cards/pop-culture-shelf-character-goods-catalog-hero.webp"
+    },
+    {
+      "id": "challenger-botanical",
+      "kind": "challenger",
+      "catalogId": "editorial-sequence-montage-botanical-folio-season",
+      "label": "植物图谱 · 生长阶段",
+      "verdict": "declined",
+      "lineage": "植物标本图谱",
+      "thesis": "同一株植物的五个阶段并排等比陈列，每个阶段一枚小标签。",
+      "palette": ["#F5F0E2", "#3C6B45", "#B03A2E", "#6B6459"],
+      "materials": ["奶油色图版", "发丝棕线", "石墨灰标签"],
+      "viewport": "五张等比图版共处一条基线，下方排名字与阶段标签。",
+      "case": "融合不佳：标本学隐喻无法承载正确率与错题的紧迫感。",
+      "risk": "读作一本装帧精美的画册，而不是能操作的工作界面。",
+      "kept": "每个状态都有固定命名的小标签，不用色相代称。",
+      "hero": "https://impeccable.style/worlds/cards/editorial-sequence-montage-botanical-folio-season-hero.webp"
+    },
+    {
+      "id": "challenger-ikeda",
+      "kind": "challenger",
+      "catalogId": "ikeda-datamatics",
+      "label": "数据场 · 黑白条码",
+      "verdict": "declined",
+      "lineage": "伊泽达数据场作品",
+      "thesis": "纯黑白密集条码与正弦点阵，偶尔整帧翻成负片。",
+      "palette": ["#000000", "#FFFFFF"],
+      "materials": ["像素级硬边", "发丝线", "等宽数字"],
+      "viewport": "黑白数据场占据全屏，数字密排留白。",
+      "case": "融合不佳：与长时间阅读题面的场景直接冲突，等宽数字也会变成「技术感」 costume。",
+      "risk": "黑白高对比在长时间阅读下刺眼且不可读。",
+      "kept": "全屏反相只发生一次：练习结束结算的那一刻，纸面翻成负片。",
+      "hero": "https://impeccable.style/worlds/cards/ikeda-datamatics-hero.webp"
+    }
+  ],
+  "reroll": {
+    "registers": ["safer", "bolder"]
+  },
+  "buildPath": {
+    "value": "code",
+    "toggle": true
+  },
+  "canon": true,
+  "canonCard": {
+    "kind": "canon",
+    "label": "品类标准",
+    "thesis": "这个品类通常出厂的样子：干净网格、克制配色、无世界隐喻，做到底。",
+    "palette": ["#FFFFFF", "#111827", "#2563EB"],
+    "materials": ["整齐网格", "卡片", "系统字体"],
+    "viewport": "标准 SaaS 后台：左侧导航 + 统计卡片网格 + 图表。",
+    "risk": "按设计就是与竞品难以区分。",
+    "html": ".impeccable/mocks/decision/canon.html",
+    "comp": ".impeccable/mocks/decision/canon.webp"
+  },
+  "steer": true
+}

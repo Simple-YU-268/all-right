@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Kuku 看板 · 品类标准</title>
+<style>
+:root{--bg:#F8FAFC;--card:#FFFFFF;--line:#E5E7EB;--line2:#F1F3F7;--txt:#111827;--txt2:#475569;--txt3:#64748B;
+--blue:#2563EB;--blue-d:#1D4ED8;--blue-bg:#EFF4FF;--red:#DC2626;--red-bg:#FEF2F2;--green:#15803D;--green-bg:#F0FDF4;
+--sans:system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1440px;height:900px;overflow:hidden}
+body{background:var(--bg);color:var(--txt);font:13.5px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+.num{font-variant-numeric:tabular-nums}
+.app{display:grid;grid-template-columns:244px 1fr;height:900px}
+.side{background:var(--card);border-right:1px solid var(--line);padding:18px 14px 14px;display:flex;flex-direction:column}
+.sbrand{display:flex;align-items:center;gap:9px;padding:2px 10px 16px}
+.sbrand b{font-size:18px;font-weight:700;letter-spacing:.01em}
+.sbrand span{font-size:12px;color:var(--txt3)}
+.logo{width:26px;height:26px;border-radius:7px;background:var(--blue);position:relative}
+.logo::before{content:"";position:absolute;left:7px;top:7px;width:12px;height:2px;background:#fff;border-radius:1px;box-shadow:0 5px 0 #fff,0 10px 0 rgba(255,255,255,.55)}
+.navlab{font-size:11px;color:var(--txt3);letter-spacing:.06em;padding:8px 10px 6px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--txt2);font-size:13.5px}
+.nav button.on{background:var(--blue-bg);color:var(--blue);font-weight:600}
+.ic{width:16px;height:16px;border:1.5px solid currentColor;border-radius:4px;position:relative;flex:0 0 16px;opacity:.9}
+.ic::before,.ic::after{content:"";position:absolute;background:currentColor}
+.ic1::before{left:2.5px;top:4.5px;right:2.5px;height:1.5px}
+.ic1::after{left:2.5px;bottom:2.5px;width:2px;height:4px;box-shadow:4px 0 0 currentColor,8px 0 0 currentColor}
+.ic2::before{left:3.5px;top:3.5px;width:3px;height:3px;border-radius:1px}
+.ic2::after{left:7.5px;top:7.5px;width:4px;height:4px;border-radius:1px}
+.ic3::before{left:2.5px;top:4.5px;right:2.5px;height:1.5px}
+.ic3::after{left:2.5px;top:9.5px;right:2.5px;height:1.5px}
+.ic4::before{left:2.5px;top:2.5px;width:4px;height:4px;border-radius:1px}
+.ic4::after{left:2.5px;bottom:2.5px;right:2.5px;height:1.5px}
+.badge{margin-left:auto;font-size:11px;font-weight:600;color:var(--red);background:var(--red-bg);border-radius:999px;padding:1px 7px}
+.scard{margin-top:18px;border:1px solid var(--line);border-radius:10px;padding:12px}
+.slab{font-size:11px;color:var(--txt3)}
+.sname{font-size:13.5px;font-weight:600;line-height:1.45;margin-top:4px;display:flex;align-items:center;gap:7px}
+.smeta{font-size:12px;color:var(--txt3);margin-top:3px}
+.imp{margin-top:10px;width:100%;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12.5px;color:var(--txt2)}
+.sfoot{margin-top:auto;padding:12px 10px 2px;font-size:11.5px;color:var(--txt3);border-top:1px solid var(--line2)}
+main{display:flex;flex-direction:column;min-width:0}
+.hd{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:16px 28px 14px;background:var(--card);border-bottom:1px solid var(--line)}
+h1{font-size:21px;font-weight:700;letter-spacing:-.01em}
+.sub{margin-top:4px;font-size:12.5px;color:var(--txt3)}
+.acts{display:flex;align-items:center;gap:9px}
+.sel{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 11px;font-size:12.5px;color:var(--txt2)}
+.tri{width:0;height:0;border:4px solid transparent;border-top-color:var(--txt3);margin-top:5px;flex:0 0 8px}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 14px;font-size:13px;color:var(--txt2);white-space:nowrap}
+.btn.p{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:500}
+.wrap{flex:1;min-height:0;padding:14px 28px 18px;display:flex;flex-direction:column;gap:16px}
+.kpis{display:flex;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px -14px rgba(16,24,40,.16)}
+.kpi{flex:1;min-width:0;padding:11px 18px}
+.kpi+.kpi{border-left:1px solid var(--line)}
+.kpi .k{font-size:12px;color:var(--txt3)}
+.kpi .v{font-size:24px;font-weight:700;line-height:1.25;margin-top:3px;letter-spacing:-.01em}
+.track{height:5px;border-radius:999px;background:var(--line2);margin-top:9px;overflow:hidden}
+.track i{display:block;height:100%;border-radius:999px;background:var(--blue)}
+.kpi .note{margin-top:7px;font-size:11.5px;color:var(--txt3)}
+.grid2{flex:1;min-height:0;display:grid;grid-template-columns:1.35fr 1fr;gap:16px}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px -14px rgba(16,24,40,.16);padding:12px 18px 14px}
+.chead{display:flex;align-items:center;gap:10px;margin-bottom:2px}
+.chead h2{font-size:14.5px;font-weight:600}
+.chead .sp{flex:1}
+.chead .cap{font-size:12px;color:var(--txt3)}
+.chart{position:relative;height:222px;display:flex;align-items:flex-end;gap:9px;padding:14px 0 0 38px}
+.gl{position:absolute;left:38px;right:0;height:1px;background:var(--line2)}
+.gl.a{top:14px}.gl.b{top:50%}.gl.c{top:calc(100% - 1px);background:var(--line)}
+.ya{position:absolute;left:0;width:32px;text-align:right;font-size:11px;color:var(--txt3)}
+.ya.a{top:7px}.ya.b{top:calc(50% - 7px)}
+.cb{flex:1;display:flex;align-items:flex-end;height:100%;position:relative;z-index:1}
+.cb b{display:block;width:100%;background:var(--blue);border-radius:3px 3px 0 0}
+.xaxis{display:flex;gap:9px;padding-left:38px;margin-top:7px}
+.xaxis span{flex:1;text-align:center;font-size:11px;color:var(--txt3)}
+.crow{display:grid;grid-template-columns:118px 1fr 48px;align-items:center;gap:14px;padding:10px 0;border-top:1px solid var(--line2)}
+.crow .n{font-size:13px}
+.bar{height:8px;border-radius:999px;background:var(--line2);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:999px;background:var(--blue)}
+.crow .p{text-align:right;font-size:13.5px;font-weight:600}
+.wq{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line2)}
+.wq .q{font-size:13.5px;line-height:1.5}
+.wq .m{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:11.5px;color:var(--txt3)}
+.chip{border-radius:999px;padding:1px 8px;font-size:11px;font-weight:500}
+.chip.e{background:var(--red-bg);color:var(--red)}
+.chip.g{background:var(--green-bg);color:var(--green)}
+.mini{border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:12.5px;color:var(--txt2);white-space:nowrap}
+.gh{font-size:12px;font-weight:600;color:var(--txt2);display:flex;align-items:center;gap:8px;padding:9px 0 0}
+.gh .c{margin-left:auto;font-weight:400;color:var(--txt3);font-size:11.5px}
+.wf{margin-top:10px;padding-top:10px;border-top:1px solid var(--line2);font-size:12px;color:var(--txt3);line-height:1.7}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="sbrand"><span class="logo"></span><b>Kuku</b><span>刷题看板</span></div>
+    <div class="navlab">工作区</div>
+    <nav class="nav">
+      <button class="on"><i class="ic ic1"></i>看板</button>
+      <button><i class="ic ic2"></i>练习</button>
+      <button><i class="ic ic3"></i>题库</button>
+      <button><i class="ic ic4"></i>错题本<span class="badge">36</span></button>
+    </nav>
+    <div class="scard">
+      <div class="slab">当前题库</div>
+      <div class="sname">计算机网络 · 考研真题 2024<span class="tri"></span></div>
+      <div class="smeta num">1,284 题 · 6 个分类 · 示例数据</div>
+    </div>
+    <div class="sfoot">题库与练习记录保存在本机浏览器<br>无需账号，不上传数据</div>
+  </aside>
+  <main>
+    <header class="hd">
+      <div>
+        <h1>看板</h1>
+        <div class="sub">计算机网络 · 考研真题 2024 · 示例数据 · 近 14 天</div>
+      </div>
+      <div class="acts">
+        <div class="sel"><span>统计范围</span><span>近 14 天</span><span class="tri"></span></div>
+        <button class="btn">导入 JSON 题库</button>
+        <button class="btn p">开始练习</button>
+      </div>
+    </header>
+    <div class="wrap">
+      <div class="kpis">
+        <div class="kpi"><div class="k">累计作答</div><div class="v num">2,417</div>
+          <div class="track"><i style="width:100%"></i></div><div class="note num">本题库累计 2,417 次作答</div></div>
+        <div class="kpi"><div class="k">本周正确率</div><div class="v num">78%</div>
+          <div class="track"><i style="width:78%"></i></div><div class="note num">本周作答 620 题</div></div>
+        <div class="kpi"><div class="k">待复习错题</div><div class="v num" style="color:var(--red)">36</div>
+          <div class="track"><i style="width:51%;background:var(--red)"></i></div><div class="note num">累计答错 71 题</div></div>
+        <div class="kpi"><div class="k">已掌握</div><div class="v num" style="color:var(--green)">714</div>
+          <div class="track"><i style="width:56%;background:var(--green)"></i></div><div class="note num">复刷一次即计入</div></div>
+        <div class="kpi"><div class="k">今日已练</div><div class="v num">48</div>
+          <div class="track"><i style="width:39%"></i></div><div class="note num">昨日 62 题</div></div>
+      </div>
+      <div class="grid2">
+        <div class="col">
+          <section class="card">
+            <div class="chead"><h2>近 14 天练习量</h2><span class="sp"></span><span class="cap">单位：题</span></div>
+            <div class="chart">
+              <div class="gl a"></div><div class="gl b"></div><div class="gl c"></div>
+              <div class="ya a">80</div><div class="ya b">40</div>
+              <div class="cb"><b style="height:40%"></b></div><div class="cb"><b style="height:60%"></b></div>
+              <div class="cb"><b style="height:33%"></b></div><div class="cb"><b style="height:2px;border-radius:2px"></b></div>
+              <div class="cb"><b style="height:76%"></b></div><div class="cb"><b style="height:55%"></b></div>
+              <div class="cb"><b style="height:65%"></b></div><div class="cb"><b style="height:23%"></b></div>
+              <div class="cb"><b style="height:91%"></b></div><div class="cb"><b style="height:50%"></b></div>
+              <div class="cb"><b style="height:83%"></b></div><div class="cb"><b style="height:36%"></b></div>
+              <div class="cb"><b style="height:69%"></b></div><div class="cb"><b style="height:60%"></b></div>
+            </div>
+            <div class="xaxis"><span>10/19</span><span>10/20</span><span>10/21</span><span>10/22</span><span>10/23</span><span>10/24</span><span>10/25</span><span>10/26</span><span>10/27</span><span>10/28</span><span>10/29</span><span>10/30</span><span>10/31</span><span>11/01</span></div>
+          </section>
+          <section class="card">
+            <div class="chead"><h2>分类正确率</h2><span class="sp"></span>
+              <div class="sel"><span>全部 6 个分类</span><span class="tri"></span></div></div>
+            <div class="crow"><div class="n">第一章 体系结构</div><div class="bar"><i style="width:78%"></i></div><div class="p num">78%</div></div>
+            <div class="crow"><div class="n">第二章 物理层</div><div class="bar"><i style="width:64%"></i></div><div class="p num">64%</div></div>
+            <div class="crow"><div class="n">第三章 数据链路层</div><div class="bar"><i style="width:91%"></i></div><div class="p num">91%</div></div>
+            <div class="crow"><div class="n">第四章 网络层</div><div class="bar"><i style="width:72%"></i></div><div class="p num">72%</div></div>
+            <div class="crow"><div class="n">第五章 传输层</div><div class="bar"><i style="width:58%"></i></div><div class="p num">58%</div></div>
+            <div class="crow"><div class="n">第六章 应用层</div><div class="bar"><i style="width:83%"></i></div><div class="p num">83%</div></div>
+          </section>
+        </div>
+        <div class="col">
+          <section class="card">
+            <div class="chead"><h2>错题概览</h2><span class="sp"></span><span class="cap num">共 36 题待复习</span></div>
+            <div class="wf" style="margin:0;padding:0 0 10px;border:0">答错的题自动进入复习队列，可随时重刷</div>
+            <div class="gh"><span>第一章 体系结构</span><span class="c num">2 题</span></div>
+            <div class="wq"><div><div class="q">OSI 参考模型中负责数据帧传输的是哪一层？</div><div class="m"><span class="chip e">错 3 次</span><span>11/01</span><span>单选</span></div></div><button class="mini">重刷</button></div>
+            <div class="wq"><div><div class="q">停止等待协议中确认帧丢失后，发送方如何处理？</div><div class="m"><span class="chip e">错 2 次</span><span>10/30</span><span>单选</span></div></div><button class="mini">重刷</button></div>
+            <div class="gh"><span>第四章 网络层</span><span class="c num">2 题</span></div>
+            <div class="wq"><div><div class="q">路由器转发分组时查阅的是哪一张表？</div><div class="m"><span class="chip e">错 4 次</span><span>11/02</span><span>单选</span></div></div><button class="mini">重刷</button></div>
+            <div class="wq"><div><div class="q">子网划分：/26 对应的子网掩码是多少？</div><div class="m"><span class="chip e">错 1 次</span><span>10/28</span><span>填空</span></div></div><button class="mini">重刷</button></div>
+            <div class="gh"><span>第五章 传输层</span><span class="c num">2 题</span></div>
+            <div class="wq"><div><div class="q">TCP 三次握手中 SYN 报文段携带哪些字段？</div><div class="m"><span class="chip e">错 3 次</span><span>11/01</span><span>多选</span></div></div><button class="mini">重刷</button></div>
+            <div class="wq"><div><div class="q">TCP 拥塞控制的四个阶段依次是哪些？</div><div class="m"><span class="chip g">已掌握</span><span>曾错 1 次</span><span>11/01 复刷通过</span></div></div><button class="mini">重刷</button></div>
+            <div class="gh"><span>第六章 应用层</span><span class="c num">1 题</span></div>
+            <div class="wq"><div><div class="q">DNS 递归查询与迭代查询的区别是什么？</div><div class="m"><span class="chip e">错 2 次</span><span>10/29</span><span>单选</span></div></div><button class="mini">重刷</button></div>
+            <div class="wf">重刷通过的题目自动计入「已掌握」，并从待复习队列移除。</div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

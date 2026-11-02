@@ -1,0 +1,344 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--desk);
+  color: var(--ink-700);
+  font-family: var(--font-sans);
+  font-size: var(--t-base);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+ul,
+ol {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: var(--blue-5);
+  text-underline-offset: 3px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--blue-2);
+  color: var(--ink-900);
+}
+
+/* 浏览器自带的表面也要属于这套设计：选中、光标、滚动条、数字 */
+* {
+  scrollbar-color: var(--rule-strong) transparent;
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--rule-strong);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-400);
+  background-clip: content-box;
+}
+
+input[type="number"] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- 排版角色 ---- */
+
+.t-label {
+  font-size: var(--t-xs);
+  color: var(--ink-500);
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+}
+
+.t-meta {
+  font-size: var(--t-sm);
+  color: var(--ink-500);
+}
+
+.t-data {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-900);
+  letter-spacing: -0.01em;
+}
+
+.t-stem {
+  font-family: var(--font-serif);
+  color: var(--ink-900);
+  font-size: var(--t-2xl);
+  line-height: 1.7;
+  font-weight: 400;
+}
+
+/* ---- 控件 ---- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  height: 34px;
+  padding: 0 var(--s4);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-control);
+  background: var(--paper-raised);
+  color: var(--ink-800);
+  font-size: var(--t-base);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--ink-400);
+  background: var(--paper);
+}
+
+.btn:active:not(:disabled) {
+  background: var(--paper-sunken);
+}
+
+.btn:disabled {
+  color: var(--ink-400);
+  border-color: var(--rule);
+  background: var(--paper);
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--blue-5);
+  border-color: var(--blue-5);
+  color: #fff;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--blue-6);
+  border-color: var(--blue-6);
+  color: #fff;
+}
+
+.btn--primary:active:not(:disabled) {
+  background: var(--blue-6);
+}
+
+.btn--primary:disabled {
+  background: var(--blue-2);
+  border-color: var(--blue-2);
+  color: #fff;
+}
+
+.btn--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink-500);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: var(--paper-sunken);
+  border-color: transparent;
+  color: var(--ink-800);
+}
+
+.btn--danger {
+  /* 朱红只留给错题，破坏性操作用墨阶中性色，强度靠压深而不是靠红 */
+  border-color: var(--rule-strong);
+  color: var(--ink-700);
+}
+
+.btn--danger:hover:not(:disabled) {
+  border-color: var(--ink-700);
+  color: var(--paper);
+  background: var(--ink-700);
+}
+
+.btn--sm {
+  height: 28px;
+  padding: 0 var(--s3);
+  font-size: var(--t-sm);
+}
+
+.btn--lg {
+  height: 40px;
+  padding: 0 var(--s5);
+  font-size: var(--t-md);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.field__label {
+  font-size: var(--t-xs);
+  color: var(--ink-500);
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px var(--s3);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-control);
+  background: var(--paper-raised);
+  color: var(--ink-800);
+  font-size: var(--t-base);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--ink-500);
+}
+
+.input:hover,
+.select:hover,
+.textarea:hover {
+  border-color: var(--ink-400);
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  border-color: var(--blue-4);
+  outline: 2px solid var(--blue-1);
+  outline-offset: -1px;
+}
+
+.textarea {
+  min-height: 120px;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: var(--t-sm);
+  line-height: 1.6;
+}
+
+.select {
+  appearance: none;
+  padding-right: 28px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-500) 50%),
+    linear-gradient(135deg, var(--ink-500) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 15px, calc(100% - 10px) 15px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+/* ---- 小标签与标记 ---- */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  height: 22px;
+  padding: 0 var(--s2);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-chip);
+  background: var(--paper);
+  color: var(--ink-500);
+  font-size: var(--t-xs);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.chip--blue {
+  border-color: var(--blue-2);
+  background: var(--blue-1);
+  color: var(--blue-6);
+}
+
+.chip--wrong {
+  border-color: var(--wrong-line);
+  background: var(--wrong-soft);
+  color: var(--wrong);
+}
+
+.chip--right {
+  border-color: var(--right-line);
+  background: var(--right-soft);
+  color: var(--right);
+}
+
+.chip--plain {
+  border-color: transparent;
+  background: transparent;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

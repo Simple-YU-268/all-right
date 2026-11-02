@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Kuku 看板 · 蜡纸油印卷子</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F5F4F1;--ink:#2A3E8F;--red:#C0392B;--grn:#2E7D5B;--pen:#5A5F66;--rule:#DAD7CE;--t1:#C2C7D9;--t2:#9AA2C5;--t3:#717EB1;
+--t4:#48599E;--t5:#2A3E8F;--blank:#EBE9E3;--stack:system-ui,"Noto Serif SC","Songti SC","SimSun",serif;--mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1440px;height:900px;overflow:hidden}
+body{background:var(--paper);color:var(--ink);font:13px/1.5 var(--stack);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:left}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.pen{color:var(--pen)}.app{display:grid;grid-template-columns:224px 1fr;height:900px}
+/* ---------- 左侧栏 ---------- */
+.rail{border-right:1px solid var(--rule);padding:18px 16px 14px;display:flex;flex-direction:column}
+.brand{display:flex;align-items:baseline;gap:8px;padding-bottom:11px;border-bottom:1px solid var(--rule)}
+.brand b{font-size:21px;font-weight:700;letter-spacing:.05em}.brand em{font-style:normal;font-size:10.5px;color:var(--pen)}
+.lib{padding:14px 0 13px;border-bottom:1px solid var(--rule)}
+.lab{font-size:10.5px;color:var(--pen);letter-spacing:.08em}.lib h2{font-size:14.5px;font-weight:700;line-height:1.4;margin:6px 0 5px}
+.lib p{font-size:11px;color:var(--pen);line-height:1.6}
+.pick{display:flex;align-items:flex-start;gap:7px}
+.tri{width:0;height:0;border:4px solid transparent;border-top-color:var(--pen);margin-top:6px;flex:0 0 8px}
+nav{margin-top:13px;display:flex;flex-direction:column;gap:1px}
+nav button{display:flex;align-items:center;gap:9px;padding:7px 9px;color:var(--pen);font-size:13px}
+nav button.on{background:#E7EAF4;color:var(--ink);font-weight:600}
+.ico{width:15px;height:15px;border:1px solid currentColor;position:relative;flex:0 0 15px;opacity:.9}
+.ico::before,.ico::after{content:"";position:absolute;background:currentColor}
+.i1::before{left:2px;right:2px;top:4px;height:1px}
+.i1::after{left:2px;bottom:2px;width:2px;height:4px;box-shadow:4px 0 0 currentColor,8px 0 0 currentColor}
+.i2::before{left:3px;top:3px;width:3px;height:3px}
+.i2::after{left:7px;top:7px;width:4px;height:4px}
+.i3::before{left:2px;top:4px;right:2px;height:1px}
+.i3::after{left:2px;top:9px;right:2px;height:1px}
+.i4::before{left:2px;top:2px;width:4px;height:4px}
+.i4::after{left:2px;bottom:2px;right:2px;height:1px}
+.badge{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--red)}
+.foot{margin-top:auto;padding-top:12px;border-top:1px solid var(--rule);font-size:10.5px;color:var(--pen);line-height:1.8}
+/* ---------- 主区 ---------- */
+main{display:flex;flex-direction:column;min-width:0}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:17px 26px 13px;border-bottom:1px solid var(--rule)}
+h1{font-size:24px;font-weight:700;letter-spacing:.02em}
+.sub{margin-top:4px;font-size:11.5px;color:var(--pen)}
+.acts{display:flex;align-items:center;gap:9px}
+.sel{display:flex;align-items:center;gap:8px;border:1px solid var(--rule);background:#FBFBF9;padding:6px 10px;font-size:12px}
+.sel .tri{margin-top:5px}
+.btn{border:1px solid var(--ink);padding:6px 14px;font-size:12.5px;white-space:nowrap}
+.btn.g{color:var(--ink)}
+.btn.p{background:var(--ink);color:var(--paper)}
+/* ---------- 表单式数据栏 ---------- */
+.bar{display:flex;padding:0 26px;border-bottom:1px solid var(--rule);background:#F8F7F4}
+.cell{flex:1;min-width:0;padding:12px 16px 12px 0}
+.cell+.cell{padding-left:16px;border-left:1px solid var(--rule)}
+.cell .k{font-size:10.5px;color:var(--pen);letter-spacing:.04em}
+.cell .v{font-size:22px;font-weight:700;line-height:1.2;margin:3px 0 7px}
+.cell.red{--c:var(--red)}.cell.grn{--c:var(--grn)}
+.mini{display:flex;gap:2px;height:8px}
+.mini i{flex:1;background:var(--blank)}
+.mini i.on{background:var(--c,var(--t4))}
+.cell .note{margin-top:5px;font-size:10px;color:var(--pen)}
+/* ---------- 两栏 ---------- */
+.cols{flex:1;min-height:0;display:grid;grid-template-columns:1.32fr 1fr}
+.lcol{padding:15px 24px 16px 26px;border-right:1px solid var(--rule);min-width:0;display:flex;flex-direction:column}
+.rcol{padding:15px 26px 16px 24px;min-width:0}
+.phead{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.phead h3{font-size:15px;font-weight:700;white-space:nowrap}
+.phead .hr{flex:1;height:1px;background:var(--rule)}
+.phead .cap{font-size:10.5px;color:var(--pen);white-space:nowrap}
+.pnote{font-size:10.5px;color:var(--pen);margin-bottom:9px}
+/* ---------- 柱状图 ---------- */
+.chart{position:relative;height:244px;display:flex;align-items:flex-end;gap:7px;border-bottom:1px solid var(--ink);margin-top:8px;padding-left:36px}
+.chart .grid{position:absolute;left:36px;right:0;top:50%;height:1px;background:var(--rule)}
+.chart .gt{position:absolute;left:0;width:31px;text-align:right;top:calc(50% - 7px);font-size:9.5px;color:var(--pen);font-family:var(--mono)}
+.chart .cbar{flex:1;display:flex;align-items:flex-end;height:100%;position:relative;z-index:1;padding:0;background:none}
+.chart .cbar b{display:block;width:100%;background:var(--c,var(--t3))}
+.chart .cbar b.zero{background:var(--blank);height:3px}
+.xaxis{display:flex;gap:7px;margin-top:5px;padding-left:36px}
+.xaxis span{flex:1;text-align:center;font-size:9.5px;color:var(--pen);font-family:var(--mono)}
+/* ---------- 分类正确率 ---------- */
+.cats{margin-top:16px}
+.crow{display:grid;grid-template-columns:112px 1fr 44px;align-items:center;gap:13px;padding:9px 0;border-top:1px solid var(--rule)}
+.crow .n{font-size:13px;font-weight:500}
+.steps{display:flex;gap:3px}
+.steps i{flex:1;height:15px;background:var(--c,var(--blank))}
+.crow .p{text-align:right;font-family:var(--mono);font-size:14px;font-weight:700}
+/* ---------- 错题概览 ---------- */
+.grp{margin-top:12px}
+.grp h4{font-size:11.5px;font-weight:600;color:var(--pen);display:flex;align-items:center;gap:8px;padding-bottom:5px;border-bottom:1px solid var(--rule)}
+.grp h4 .t{flex:1;min-width:0}
+.grp h4 .c{flex:0 0 auto;font-family:var(--mono);font-size:10.5px}
+.wq{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--rule)}
+.wq .q{font-size:13.5px;line-height:1.5}
+.wq .meta{display:flex;gap:11px;align-items:center;margin-top:4px;font-size:10.5px;color:var(--pen)}
+.err{color:var(--red);font-family:var(--mono)}.ok{color:var(--grn);font-weight:600}
+.retry{border:1px solid var(--ink);padding:5px 12px;font-size:12px;color:var(--ink);white-space:nowrap}
+.wfoot{margin-top:12px;font-size:10.5px;color:var(--pen);line-height:1.7}.lfoot{margin-top:auto;padding-top:13px;border-top:1px solid var(--rule);font-size:10.5px;color:var(--pen);line-height:1.8}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand"><b>Kuku</b><em>本地题库 · 离线可用</em></div>
+    <div class="lib">
+      <div class="lab">当前题库</div>
+      <h2 class="pick">计算机网络 · 考研真题 2024<span class="tri"></span></h2><p>1,284 题 · 6 个分类 · 示例数据</p>
+    </div>
+    <nav>
+      <button class="on"><span class="ico i1"></span>看板</button>
+      <button><span class="ico i2"></span>练习</button>
+      <button><span class="ico i3"></span>题库</button>
+      <button><span class="ico i4"></span>错题本<span class="badge">36</span></button>
+    </nav>
+    <div class="foot">练习记录保存在本机浏览器<br>不上传，不联网</div>
+  </aside>
+  <main>
+    <div class="top">
+      <div>
+        <h1>看板</h1>
+        <div class="sub">计算机网络 · 考研真题 2024 · 示例数据 · 近 <span class="mono">14</span> 天</div>
+      </div>
+      <div class="acts">
+        <div class="sel"><span class="pen">统计范围</span><span>近 14 天</span><span class="tri"></span></div><button class="btn g">导入 JSON 题库</button>
+        <button class="btn p">开始练习</button>
+      </div>
+    </div>
+    <div class="bar">
+      <div class="cell"><div class="k">累计作答</div><div class="v mono">2,417</div>
+        <div class="mini"><i class="on" style="--c:var(--t5)"></i><i class="on" style="--c:var(--t5)"></i><i class="on" style="--c:var(--t5)"></i><i class="on" style="--c:var(--t5)"></i><i class="on" style="--c:var(--t5)"></i><i class="on" style="--c:var(--t5)"></i><i class="on" style="--c:var(--t5)"></i><i class="on" style="--c:var(--t5)"></i><i class="on" style="--c:var(--t5)"></i><i class="on" style="--c:var(--t5)"></i></div>
+        <div class="note">本题库累计 2,417 次作答</div></div>
+      <div class="cell"><div class="k">本周正确率</div><div class="v mono">78%</div>
+        <div class="mini"><i class="on" style="--c:var(--t4)"></i><i class="on" style="--c:var(--t4)"></i><i class="on" style="--c:var(--t4)"></i><i class="on" style="--c:var(--t4)"></i><i class="on" style="--c:var(--t4)"></i><i class="on" style="--c:var(--t4)"></i><i class="on" style="--c:var(--t4)"></i><i class="on" style="--c:var(--t4)"></i><i></i><i></i></div>
+        <div class="note">本周作答 620 题</div></div>
+      <div class="cell red"><div class="k">待复习错题</div><div class="v mono" style="color:var(--red)">36</div>
+        <div class="mini"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="note">累计答错 71 题</div></div>
+      <div class="cell grn"><div class="k">已掌握</div><div class="v mono" style="color:var(--grn)">714</div>
+        <div class="mini"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+        <div class="note">复刷一次即计入</div></div>
+      <div class="cell"><div class="k">今日已练</div><div class="v mono">48</div>
+        <div class="mini"><i class="on" style="--c:var(--t3)"></i><i class="on" style="--c:var(--t3)"></i><i class="on" style="--c:var(--t3)"></i><i class="on" style="--c:var(--t3)"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="note">昨日 62 题</div></div>
+    </div>
+    <div class="cols">
+      <div class="lcol">
+        <div class="phead"><h3>近 14 天练习量</h3><span class="hr"></span><span class="cap">单位：题 · 墨色深浅表示题量</span></div>
+        <div class="chart">
+          <div class="grid"></div><div class="gt">36</div>
+          <div class="cbar"><b style="height:44%;--c:var(--t2)"></b></div><div class="cbar"><b style="height:66%;--c:var(--t3)"></b></div>
+          <div class="cbar"><b style="height:36%;--c:var(--t2)"></b></div><div class="cbar"><b class="zero"></b></div>
+          <div class="cbar"><b style="height:84%;--c:var(--t4)"></b></div><div class="cbar"><b style="height:60%;--c:var(--t3)"></b></div>
+          <div class="cbar"><b style="height:71%;--c:var(--t3)"></b></div><div class="cbar"><b style="height:25%;--c:var(--t1)"></b></div>
+          <div class="cbar"><b style="height:100%;--c:var(--t5)"></b></div><div class="cbar"><b style="height:55%;--c:var(--t3)"></b></div>
+          <div class="cbar"><b style="height:90%;--c:var(--t4)"></b></div><div class="cbar"><b style="height:40%;--c:var(--t3)"></b></div>
+          <div class="cbar"><b style="height:75%;--c:var(--t4)"></b></div><div class="cbar"><b style="height:66%;--c:var(--t3)"></b></div>
+        </div>
+        <div class="xaxis"><span>10/19</span><span>10/20</span><span>10/21</span><span>10/22</span><span>10/23</span><span>10/24</span><span>10/25</span><span>10/26</span><span>10/27</span><span>10/28</span><span>10/29</span><span>10/30</span><span>10/31</span><span>11/01</span></div>
+        <div class="cats">
+          <div class="phead"><h3>分类正确率</h3><span class="hr"></span><span class="cap">全部 6 个分类</span></div>
+          <div class="pnote">阶梯块长度＝正确率，深浅＝掌握度（墨分五色）</div>
+          <div class="crow"><div class="n">第一章 体系结构</div><div class="steps"><i style="--c:var(--t1)"></i><i style="--c:var(--t2)"></i><i style="--c:var(--t2)"></i><i style="--c:var(--t3)"></i><i style="--c:var(--t3)"></i><i style="--c:var(--t4)"></i><i style="--c:var(--t4)"></i><i style="--c:var(--t4)"></i><i></i><i></i></div><div class="p">78%</div></div>
+          <div class="crow"><div class="n">第二章 物理层</div><div class="steps"><i style="--c:var(--t1)"></i><i style="--c:var(--t2)"></i><i style="--c:var(--t2)"></i><i style="--c:var(--t3)"></i><i style="--c:var(--t3)"></i><i style="--c:var(--t3)"></i><i></i><i></i><i></i><i></i></div><div class="p">64%</div></div>
+          <div class="crow"><div class="n">第三章 数据链路层</div><div class="steps"><i style="--c:var(--t1)"></i><i style="--c:var(--t1)"></i><i style="--c:var(--t2)"></i><i style="--c:var(--t2)"></i><i style="--c:var(--t3)"></i><i style="--c:var(--t3)"></i><i style="--c:var(--t4)"></i><i style="--c:var(--t4)"></i><i style="--c:var(--t5)"></i><i></i></div><div class="p">91%</div></div>
+          <div class="crow"><div class="n">第四章 网络层</div><div class="steps"><i style="--c:var(--t1)"></i><i style="--c:var(--t2)"></i><i style="--c:var(--t2)"></i><i style="--c:var(--t3)"></i><i style="--c:var(--t3)"></i><i style="--c:var(--t4)"></i><i style="--c:var(--t4)"></i><i></i><i></i><i></i></div><div class="p">72%</div></div>
+          <div class="crow"><div class="n">第五章 传输层</div><div class="steps"><i style="--c:var(--t1)"></i><i style="--c:var(--t2)"></i><i style="--c:var(--t2)"></i><i style="--c:var(--t3)"></i><i style="--c:var(--t3)"></i><i style="--c:var(--t3)"></i><i></i><i></i><i></i><i></i></div><div class="p">58%</div></div>
+          <div class="crow"><div class="n">第六章 应用层</div><div class="steps"><i style="--c:var(--t1)"></i><i style="--c:var(--t2)"></i><i style="--c:var(--t2)"></i><i style="--c:var(--t3)"></i><i style="--c:var(--t3)"></i><i style="--c:var(--t4)"></i><i style="--c:var(--t4)"></i><i style="--c:var(--t4)"></i><i></i><i></i></div><div class="p">83%</div></div>
+          <div class="lfoot">正确率按真实作答记录计算，不做估算填充。<br>导入自己的 JSON 题库后，看板按同一套口径自动统计。</div>
+        </div>
+      </div>
+      <div class="rcol">
+        <div class="phead"><h3>错题概览</h3><span class="hr"></span><span class="cap">共 36 题待复习</span></div>
+        <div class="pnote">按分类分组 · 答错的题自动进入复习队列</div>
+        <div class="grp"><h4><span class="t">第一章 体系结构</span><span class="c">2 题</span></h4>
+          <div class="wq"><div><div class="q">OSI 参考模型中负责数据帧传输的是哪一层？</div><div class="meta"><span class="err">错 3 次</span><span>上次作答 11/01</span><span>单选</span></div></div><button class="retry">重刷</button></div>
+          <div class="wq"><div><div class="q">停止等待协议中确认帧丢失后，发送方如何处理？</div><div class="meta"><span class="err">错 2 次</span><span>上次作答 10/30</span><span>单选</span></div></div><button class="retry">重刷</button></div>
+        </div>
+        <div class="grp"><h4><span class="t">第四章 网络层</span><span class="c">2 题</span></h4>
+          <div class="wq"><div><div class="q">路由器转发分组时查阅的是哪一张表？</div><div class="meta"><span class="err">错 4 次</span><span>上次作答 11/02</span><span>单选</span></div></div><button class="retry">重刷</button></div>
+          <div class="wq"><div><div class="q">子网划分：/26 对应的子网掩码是多少？</div><div class="meta"><span class="err">错 1 次</span><span>上次作答 10/28</span><span>填空</span></div></div><button class="retry">重刷</button></div>
+        </div>
+        <div class="grp">
+          <h4><span class="t">第五章 传输层</span><span class="c">2 题</span></h4>
+          <div class="wq"><div><div class="q">TCP 三次握手中 SYN 报文段携带哪些字段？</div><div class="meta"><span class="err">错 3 次</span><span>上次作答 11/01</span><span>多选</span></div></div><button class="retry">重刷</button></div>
+          <div class="wq"><div><div class="q">TCP 拥塞控制的四个阶段依次是哪些？</div><div class="meta"><span class="ok">已掌握</span><span>曾错 1 次 · 11/01 复刷通过</span></div></div><button class="retry">重刷</button></div>
+        </div>
+        <div class="grp">
+          <h4><span class="t">第六章 应用层</span><span class="c">1 题</span></h4>
+          <div class="wq"><div><div class="q">DNS 递归查询与迭代查询的区别是什么？</div><div class="meta"><span class="err">错 2 次</span><span>上次作答 10/29</span><span>单选</span></div></div><button class="retry">重刷</button></div>
+        </div>
+        <div class="wfoot">错题是可复习的资产，不是失败记录。<br>重刷通过后自动计入「已掌握」。</div>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

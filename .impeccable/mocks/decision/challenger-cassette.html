@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Kuku · 挑战者方向 · 磁带内衬卡</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--paper:#FBFBF9;--ink:#2B4B8F;--ink2:#41588C;--pencil:#8B8B8B;--gold:#C8A02C;--red:#C0392B;--rule:rgba(43,75,143,.18);--hair:rgba(43,75,143,.09);
+--kai:"Kaiti SC","KaiTi","STKaiti","FangSong","Songti SC",serif;--mono:"JetBrains Mono","SF Mono",Consolas,monospace;--hand:"Caveat",cursive}
+html,body{width:1440px;height:900px;overflow:hidden}
+body{background:#E5E3D8;font-family:var(--kai);color:var(--ink);-webkit-font-smoothing:antialiased;display:flex}
+::selection{background:rgba(200,160,44,.35)}
+button{font-family:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+::-webkit-scrollbar{width:7px;height:7px}::-webkit-scrollbar-thumb{background:rgba(43,75,143,.22);border-radius:4px}
+
+/* 左栏：题库索引条 */
+.rail{width:236px;flex:0 0 236px;background:#F1EFE7;border-right:1px solid var(--rule);padding:22px 16px 16px;display:flex;flex-direction:column;gap:16px}
+.mark{font-family:var(--hand);font-size:31px;font-weight:700;line-height:.95;color:var(--ink)}
+.brand p{font-size:11px;color:#6A6A66;letter-spacing:.18em;margin-top:4px}
+.nav{display:flex;flex-direction:column}
+.nav a{display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px solid var(--hair);font-size:15px;color:#3F5480;text-decoration:none}
+.nav a:hover{background:rgba(43,75,143,.06);color:var(--ink)}
+.nav a.on{color:var(--ink);font-weight:700}
+.ic{width:13px;height:13px;flex:0 0 13px;border:1.3px solid currentColor;position:relative}
+.ic::before,.ic::after{content:"";position:absolute;background:currentColor}
+.ic.g::before{left:0;right:0;top:3.2px;height:1.3px}.ic.p::before{left:4px;top:4px;width:5px;height:5px}
+.ic.l::before{left:2px;right:2px;top:3px;height:1.3px;box-shadow:0 3.4px 0 currentColor}.ic.b::before{left:3.2px;top:0;bottom:0;width:1.3px}
+.nav a.on .ic{background:var(--gold);border-color:var(--gold)}
+.nav a.on .ic::before,.nav a.on .ic::after{background:#F1EFE7}
+.badge{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--red)}
+.lab{font-size:11px;color:#6A6A66;letter-spacing:.18em;margin-bottom:7px}
+.sel{border:1px solid var(--rule);background:var(--paper);padding:9px 10px;display:flex;gap:8px;align-items:flex-start}
+.sel .t{font-size:13.5px;line-height:1.35;flex:1}
+.sel .m{font-family:var(--mono);font-size:10.5px;color:#6A6A66;margin-top:4px}
+.chev{width:7px;height:7px;border-right:1.3px solid var(--ink);border-bottom:1.3px solid var(--ink);transform:rotate(45deg);margin-top:4px;flex:0 0 7px}
+.alt{display:flex;justify-content:space-between;align-items:center;margin-top:9px;font-size:11.5px;color:#6A6A66}
+.alt b{font-weight:400;color:var(--ink2);border-bottom:1px solid var(--ink2);cursor:pointer}
+.foot{margin-top:auto;display:flex;flex-direction:column;gap:9px}
+.btn{background:none;border:1px solid var(--ink2);color:var(--ink);border-radius:3px;padding:7px 10px;font-size:12.5px;letter-spacing:.06em}
+.btn:hover{background:rgba(43,75,143,.09)}
+.foot p{font-size:10.5px;color:#6A6A66;line-height:1.6}
+
+/* 主区：一张折起的纸质内衬卡 */
+main{flex:1;min-width:0;padding:16px 18px;display:flex}
+.sheet{flex:1;min-width:0;background:var(--paper);border:1px solid rgba(43,75,143,.20);border-radius:2px;box-shadow:0 1px 2px rgba(43,75,143,.06),0 16px 34px rgba(43,75,143,.09);padding:16px 12px 16px 22px;display:flex;flex-direction:column}
+.head{position:relative;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding-bottom:11px;border-bottom:1.3px solid var(--ink)}
+.fold{position:absolute;top:-16px;bottom:-16px;left:63%;width:11px;pointer-events:none;background:linear-gradient(90deg,rgba(43,75,143,0),rgba(43,75,143,.09) 40%,rgba(255,255,255,.8) 58%,rgba(43,75,143,.04) 100%)}
+.htitle{display:flex;align-items:baseline;gap:12px}
+h1{font-size:29px;font-weight:700;letter-spacing:.12em;line-height:1;color:var(--ink)}
+.bank{font-size:12.5px;color:#6A6A66;letter-spacing:.04em;border-left:1px solid var(--rule);padding-left:12px}
+.hright{display:flex;align-items:center;gap:14px}
+.when{font-family:var(--mono);font-size:11.5px;color:#6A6A66}
+.cta{background:var(--gold);color:#14181F;border:0;border-radius:3px;padding:9px 15px;font-size:14px;font-weight:700;letter-spacing:.1em}
+.cta:hover{background:#D3AB38}
+
+/* 顶部表单式数据栏：细分隔线分格，每格右缘一个读数 */
+.bar{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--rule);margin-top:12px}
+.st{position:relative;padding:9px 14px 12px;border-right:1px solid var(--rule)}
+.st:last-child{border-right:0}
+.st .l{font-size:11.5px;color:#6A6A66;letter-spacing:.14em}
+.st .n{font-size:25px;font-weight:700;line-height:1.18;color:var(--ink)}
+.st .n u{text-decoration:none;font-size:12.5px;font-weight:400;color:var(--ink2);margin-left:3px}
+.st .rd{position:absolute;right:14px;bottom:13px;font-family:var(--mono);font-size:12px;color:var(--ink2)}
+.st .rd.bad{color:var(--red)}
+
+/* 两栏工作区 */
+.grid{flex:1;min-height:0;display:grid;grid-template-columns:1.26fr 1fr;padding-top:12px}
+.col-l{padding-right:22px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:14px;min-width:0}
+.col-r{padding-left:22px;display:flex;flex-direction:column;min-width:0}
+.sec{display:flex;flex-direction:column;min-height:0}
+.sh{display:flex;align-items:baseline;justify-content:space-between;padding-bottom:5px;border-bottom:1px solid var(--rule);margin-bottom:6px}
+.stl{font-size:15px;font-weight:700;letter-spacing:.14em;color:var(--ink)}
+.sn{font-family:var(--mono);font-size:11px;color:#6A6A66}
+.bh{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:#6A6A66;padding:2px 0 5px}
+
+/* 近 14 天练习量：日期 + 柱 + 右缘读数 */
+.day{display:grid;grid-template-columns:46px 1fr 40px;align-items:center;height:18px;border-bottom:1px solid var(--hair)}
+.day .d{font-family:var(--mono);font-size:11px;color:#6A6A66}
+.day .track{height:8px;background:rgba(43,75,143,.07)}
+.day .fill{height:8px;background:var(--ink)}
+.day.today .d{color:var(--ink);font-weight:700}
+.day.today .fill{background:var(--gold)}
+.day .n{font-family:var(--mono);font-size:12px;text-align:right;color:var(--ink)}
+
+/* 分类正确率：每行右缘一个右对齐正确率 */
+.acc{display:grid;grid-template-columns:1fr 40px;align-items:center;height:23px;border-bottom:1px solid var(--hair)}
+.acc .t{font-size:14px;font-style:italic;letter-spacing:.02em;color:var(--ink)}
+.acc .v{font-family:var(--mono);font-size:12.5px;text-align:right;color:var(--ink)}
+.acc.tbd .t,.acc.tbd .v{color:var(--pencil)}
+.acc .t b{font-style:normal;font-weight:700;font-size:11px;letter-spacing:.1em}
+
+/* 最近练习记录 */
+.ses{display:grid;grid-template-columns:48px 1fr 44px 54px;align-items:center;height:21px;border-bottom:1px solid var(--hair)}
+.ses .d{font-family:var(--mono);font-size:11.5px;color:#6A6A66}
+.ses .m{font-size:12.5px;font-style:italic;color:var(--ink)}
+.ses .v,.ses .rd{font-family:var(--mono);font-size:12px;text-align:right;color:var(--ink)}
+
+/* 错题概览：按分类分组 + 重刷 */
+.grp-h{display:flex;align-items:center;justify-content:space-between;padding:7px 0 5px;border-bottom:1.3px solid var(--ink)}
+.grp-n{font-size:14px;font-weight:700;letter-spacing:.1em;color:var(--ink)}
+.grp-c{font-family:var(--mono);font-size:11px;color:#6A6A66;margin-left:9px}
+.re{background:none;border:1px solid var(--gold);color:var(--ink);border-radius:2px;padding:3px 11px;font-size:12px;letter-spacing:.1em}
+.re:hover{background:rgba(200,160,44,.16)}
+.item{display:grid;grid-template-columns:1fr 56px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--hair)}
+.item .q{font-size:13.5px;line-height:1.5;font-style:italic;color:var(--ink)}
+.item .rd{font-family:var(--mono);font-size:12px;text-align:right;color:var(--red);white-space:nowrap}
+.rfoot{margin-top:auto;padding-top:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.rfoot p{font-size:11.5px;color:#6A6A66;line-height:1.7}
+.rfoot p b{color:var(--red);font-weight:400;font-family:var(--mono)}
+</style>
+</head>
+<body>
+<aside class="rail">
+  <div class="brand"><div class="mark">Kuku</div><p>刷题工作台</p></div>
+  <nav class="nav">
+    <a class="on" href="#"><span class="ic g"></span>看板</a>
+    <a href="#"><span class="ic p"></span>练习</a>
+    <a href="#"><span class="ic l"></span>题库</a>
+    <a href="#"><span class="ic b"></span>错题本<span class="badge">17</span></a>
+  </nav>
+  <div>
+    <div class="lab">当前题库</div>
+    <div class="sel"><div><div class="t">计算机网络 · 考研真题 2024</div><div class="m">326 题 · 6 章 · 10/18 导入</div></div><span class="chev"></span></div>
+    <div class="alt"><span>计算机网络 · 408 真题 2021</span><b>切换</b></div>
+  </div>
+  <div class="foot">
+    <button class="btn">导入 JSON 题库</button>
+    <p>题库与练习记录仅保存在本机浏览器，不上传服务器。</p>
+  </div>
+</aside>
+<main>
+  <div class="sheet">
+    <header class="head">
+      <div class="fold"></div>
+      <div class="htitle"><h1>练习看板</h1><span class="bank">计算机网络 · 考研真题 2024</span></div>
+      <div class="hright"><span class="when">2026-11-02 周一</span><button class="cta">开始练习 · 随机抽题</button></div>
+    </header>
+    <section class="bar">
+      <div class="st"><div class="l">今日完成</div><div class="n">42<u>题</u></div><div class="rd">01:38</div></div><div class="st"><div class="l">近 7 日</div><div class="n">176<u>题</u></div><div class="rd">05:52</div></div>
+      <div class="st"><div class="l">今日正确率</div><div class="n">86<u>%</u></div><div class="rd bad">错 6 题</div></div><div class="st"><div class="l">错题待清</div><div class="n">17<u>题</u></div><div class="rd">待复 11</div></div>
+    </section>
+    <div class="grid">
+      <div class="col-l">
+        <section class="sec">
+          <div class="sh"><span class="stl">近 14 天练习量</span><span class="sn">10/20 – 11/02</span></div>
+          <div class="bh"><span>每日题数</span><span>题</span></div>
+          <div class="day"><span class="d">10/20</span><span class="track"><span class="fill" style="display:block;width:43%"></span></span><span class="n">18</span></div><div class="day"><span class="d">10/21</span><span class="track"><span class="fill" style="display:block;width:62%"></span></span><span class="n">26</span></div>
+          <div class="day"><span class="d">10/22</span><span class="track"><span class="fill" style="display:block;width:21%"></span></span><span class="n">9</span></div><div class="day"><span class="d">10/23</span><span class="track"><span class="fill" style="display:block;width:0"></span></span><span class="n">0</span></div>
+          <div class="day"><span class="d">10/24</span><span class="track"><span class="fill" style="display:block;width:74%"></span></span><span class="n">31</span></div><div class="day"><span class="d">10/25</span><span class="track"><span class="fill" style="display:block;width:57%"></span></span><span class="n">24</span></div>
+          <div class="day"><span class="d">10/26</span><span class="track"><span class="fill" style="display:block;width:29%"></span></span><span class="n">12</span></div><div class="day"><span class="d">10/27</span><span class="track"><span class="fill" style="display:block;width:64%"></span></span><span class="n">27</span></div>
+          <div class="day"><span class="d">10/28</span><span class="track"><span class="fill" style="display:block;width:48%"></span></span><span class="n">20</span></div><div class="day"><span class="d">10/29</span><span class="track"><span class="fill" style="display:block;width:79%"></span></span><span class="n">33</span></div>
+          <div class="day"><span class="d">10/30</span><span class="track"><span class="fill" style="display:block;width:26%"></span></span><span class="n">11</span></div><div class="day"><span class="d">10/31</span><span class="track"><span class="fill" style="display:block;width:36%"></span></span><span class="n">15</span></div>
+          <div class="day"><span class="d">11/01</span><span class="track"><span class="fill" style="display:block;width:67%"></span></span><span class="n">28</span></div>
+          <div class="day today"><span class="d">11/02</span><span class="track"><span class="fill" style="display:block;width:100%"></span></span><span class="n">42</span></div>
+        </section>
+        <section class="sec">
+          <div class="sh"><span class="stl">分类正确率</span><span class="sn">本周 · 共 326 题</span></div>
+          <div class="acc"><span class="t">第一章 体系结构</span><span class="v">78%</span></div><div class="acc"><span class="t">第二章 物理层</span><span class="v">64%</span></div>
+          <div class="acc"><span class="t">第三章 数据链路层</span><span class="v">85%</span></div><div class="acc"><span class="t">第四章 网络层</span><span class="v">71%</span></div>
+          <div class="acc"><span class="t">第五章 传输层</span><span class="v">92%</span></div><div class="acc tbd"><span class="t">第六章 应用层 <b>未练</b></span><span class="v">—</span></div>
+        </section>
+        <section class="sec">
+          <div class="sh"><span class="stl">最近练习记录</span><span class="sn">最近 4 次</span></div>
+          <div class="ses"><span class="d">11/02</span><span class="m">随机练习</span><span class="v">86%</span><span class="rd">01:38</span></div><div class="ses"><span class="d">11/01</span><span class="m">错题重刷</span><span class="v">79%</span><span class="rd">01:04</span></div>
+          <div class="ses"><span class="d">10/31</span><span class="m">第五章 传输层</span><span class="v">100%</span><span class="rd">00:47</span></div><div class="ses"><span class="d">10/30</span><span class="m">随机练习</span><span class="v">64%</span><span class="rd">00:52</span></div>
+        </section>
+      </div>
+      <div class="col-r">
+        <section class="sec">
+          <div class="sh"><span class="stl">错题概览</span><span class="sn">按分类分组 · 显示 11 / 17 题</span></div>
+          <div class="grp-h"><span><span class="grp-n">第一章 体系结构</span><span class="grp-c">3 题</span></span><button class="re">重刷本章</button></div>
+          <div class="item"><span class="q">OSI 参考模型中负责数据帧传输的是哪一层？</span><span class="rd">错 3 次</span></div><div class="item"><span class="q">交换机与集线器在转发数据帧时依据的地址有何区别？</span><span class="rd">错 2 次</span></div>
+          <div class="item"><span class="q">并行发送与串行传输对信道利用率的影响是什么？</span><span class="rd">错 1 次</span></div>
+          <div class="grp-h"><span><span class="grp-n">第二章 物理层</span><span class="grp-c">2 题</span></span><button class="re">重刷本章</button></div>
+          <div class="item"><span class="q">奈奎斯特采样定理中带宽与码元速率的关系是？</span><span class="rd">错 2 次</span></div><div class="item"><span class="q">双绞线中屏蔽层的主要作用是抑制什么干扰？</span><span class="rd">错 1 次</span></div>
+          <div class="grp-h"><span><span class="grp-n">第三章 数据链路层</span><span class="grp-c">2 题</span></span><button class="re">重刷本章</button></div>
+          <div class="item"><span class="q">CSMA/CD 在网络负载增大时信道利用率为何下降？</span><span class="rd">错 3 次</span></div><div class="item"><span class="q">生成多项式 0x04 对应的循环冗余校验能检出几位错误？</span><span class="rd">错 2 次</span></div>
+          <div class="grp-h"><span><span class="grp-n">第四章 网络层</span><span class="grp-c">1 题</span></span><button class="re">重刷本章</button></div>
+          <div class="item"><span class="q">CIDR 块 192.168.4.0/26 的可用主机地址数是多少？</span><span class="rd">错 4 次</span></div>
+          <div class="grp-h"><span><span class="grp-n">第五章 传输层</span><span class="grp-c">2 题</span></span><button class="re">重刷本章</button></div>
+          <div class="item"><span class="q">TCP 三次握手与四次挥手的报文序列分别是什么？</span><span class="rd">错 2 次</span></div><div class="item"><span class="q">流量控制与拥塞控制的区别体现在哪里？</span><span class="rd">错 1 次</span></div>
+          <div class="grp-h"><span><span class="grp-n">第六章 应用层</span><span class="grp-c">1 题</span></span><button class="re">重刷本章</button></div>
+          <div class="item"><span class="q">DNS 递归查询与迭代查询的过程有何不同？</span><span class="rd">错 3 次</span></div>
+        </section>
+        <div class="rfoot">
+          <p>共 17 题 · 待复 <b>11</b> 题 · 最早一道错了 <b>12</b> 天</p>
+          <button class="re">重刷全部错题</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</body>
+</html>
