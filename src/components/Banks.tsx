@@ -9,6 +9,7 @@ import type { Bank } from '../domain/types'
 import type { Route } from '../App'
 import { CopyButton, EmptyState } from './bits'
 import { confirmAction } from '../domain/shell'
+import { ChapterGuide } from './ChapterGuide'
 
 export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const { workspace, activeBank, addBank, removeBank, setActiveBank } = useApp()
@@ -106,7 +107,7 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                   <FileJson size={22} strokeWidth={1.6} aria-hidden="true" style={{ color: 'var(--ink-400)' }} />
                   <p className="dropzone__title">把题库 JSON 文件拖到这里</p>
                   <p className="dropzone__hint">
-                    或直接选择文件。导入前会先预览题量、分类与题型分布，有问题会逐条指出是哪一题。
+                    或直接选择文件。每题的 category 是章节名；导入前会预览题量、章节与题型分布，有问题会逐条指出是哪一题。
                   </p>
                   <div className="dropzone__actions">
                     <button type="button" className="btn btn--primary" onClick={() => inputRef.current?.click()}>
@@ -187,7 +188,7 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                       <b>{parsedStats.total}</b>
                     </div>
                     <div className="preview__stat">
-                      <span className="t-label">分类数</span>
+                      <span className="t-label">章节数</span>
                       <b>{parsedStats.categories}</b>
                     </div>
                     <div className="preview__stat">
@@ -204,6 +205,8 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                     </div>
                   </div>
                 ) : null}
+
+                {pending.valid.length > 0 ? <ChapterDistribution questions={pending.valid} /> : null}
 
                 {pending.issues.length > 0 ? (
                   <div className="issues">
@@ -257,9 +260,10 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                           <p className="bankrow__name">{bank.name}</p>
                           <p className="bankrow__meta">
                             {bank.questions.length} 题 ·{' '}
-                            {new Set(bank.questions.map((q) => q.category)).size} 个分类 · 导入于{' '}
+                            {new Set(bank.questions.map((q) => q.category)).size} 个章节 · 导入于{' '}
                             {new Date(bank.importedAt).toLocaleDateString('zh-CN')}
                           </p>
+                          <ChapterDistribution questions={bank.questions} />
                         </div>
                         <span className="bankrow__num">{bankStats.attemptedQuestions} 已练</span>
                         <span className="bankrow__num">{formatPercent(bankStats.overallAccuracy)}</span>
@@ -275,6 +279,7 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                           <button
                             type="button"
                             className="btn btn--sm"
+                            aria-label={`导出题库「${bank.name}」`}
                             onClick={() => downloadJson(`${bank.name}.json`, { name: bank.name, questions: bank.questions })}
                           >
                             <Download size={13} strokeWidth={2} />
@@ -282,6 +287,7 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                           <button
                             type="button"
                             className="btn btn--sm btn--danger"
+                            aria-label={`删除题库「${bank.name}」`}
                             onClick={async () => {
                               if (await confirmAction(`删除题库「${bank.name}」？该题库的练习记录也会一并删除。`)) {
                                 removeBank(bank.id)
@@ -295,6 +301,12 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                     )
                   })
                 )}
+              </div>
+            </section>
+
+            <section className="panel">
+              <div className="panel__body">
+                <ChapterGuide />
               </div>
             </section>
 
@@ -332,6 +344,24 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
         </div>
       </div>
     </>
+  )
+}
+
+function ChapterDistribution({ questions }: { questions: Bank['questions'] }) {
+  const chapters = new Map<string, number>()
+  for (const question of questions) chapters.set(question.category, (chapters.get(question.category) ?? 0) + 1)
+  return (
+    <details className="chapter-distribution">
+      <summary>查看章节（{chapters.size}）</summary>
+      <ul aria-label="章节分布">
+        {[...chapters].map(([name, count]) => (
+          <li key={name}>
+            <span>{name}</span>
+            <span className="t-data">{count} 题</span>
+          </li>
+        ))}
+      </ul>
+    </details>
   )
 }
 

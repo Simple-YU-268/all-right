@@ -709,6 +709,52 @@
   border-width: 2px;
 }
 
+.chapter-guide {
+  display: grid;
+  gap: var(--s3);
+  margin-block: var(--s4);
+}
+
+.chapter-guide__title {
+  font-family: var(--font-serif);
+  font-size: var(--t-md);
+  color: var(--ink-900);
+}
+
+.chapter-guide__steps {
+  display: grid;
+  gap: var(--s2);
+  padding-left: var(--s4);
+  list-style: decimal;
+}
+
+.chapter-distribution {
+  margin: var(--s3);
+  font-size: var(--t-sm);
+}
+
+.chapter-distribution summary {
+  cursor: pointer;
+  color: var(--blue-5);
+}
+
+.chapter-distribution ul {
+  display: grid;
+  gap: var(--s2);
+  margin-top: var(--s2);
+}
+
+.chapter-distribution li {
+  display: flex;
+  gap: var(--s3);
+  justify-content: space-between;
+  overflow-wrap: anywhere;
+}
+
+.chapter-distribution .t-data {
+  flex-shrink: 0;
+}
+
 .storage-error {
   position: fixed;
   z-index: 100;

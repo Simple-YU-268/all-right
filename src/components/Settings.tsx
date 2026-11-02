@@ -8,6 +8,7 @@ import { confirmAction, DATA_PLACE, DATA_RESET, DATA_STORE, IS_TAURI } from '../
 import type { Workspace } from '../domain/types'
 import type { Route } from '../App'
 import { CopyButton, Segmented } from './bits'
+import { ChapterGuide } from './ChapterGuide'
 
 const MOTION_OPTIONS: { value: MotionPref; label: string }[] = [
   { value: 'full', label: '开' },
@@ -91,6 +92,8 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
                     </button>
                   </div>
                 </div>
+
+                <ChapterGuide />
 
                 <div className="schema schema--split">
                   <pre className="schema__code t-data">{TEMPLATE_PRETTY}</pre>

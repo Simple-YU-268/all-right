@@ -58,6 +58,10 @@ try {
   assert.equal(await page.evaluate(() => !!window.isTauri), true)
   await page.locator('.rail__item').nth(4).click()
   await page.locator('code').filter({ hasText: 'workspace.json' }).waitFor()
+  assert.match(await page.locator('.chapter-guide').innerText(), /category/)
+  const template = JSON.parse(await page.locator('pre.schema__code.t-data').first().innerText())
+  assert.equal(template.questions.length, 3)
+  assert.equal(new Set(template.questions.map((question) => question.category)).size, 2)
   const roundTrip = await page.evaluate(async () => {
     const invoke = (command, args) => window.__TAURI_INTERNALS__.invoke(command, args)
     const original = await invoke('load_workspace')
@@ -75,7 +79,7 @@ try {
   })
   assert.deepEqual(roundTrip, { unchanged: true, rejectedInvalid: true })
   assert.deepEqual(errors, [])
-  console.log('PASS Native executable: bundled assets, React startup, Tauri detection, Rust read/write and replacement, invalid-data rejection')
+  console.log('PASS Native executable: bundled assets, chapter guide and template, React startup, Tauri detection, Rust read/write and replacement, invalid-data rejection')
 } finally {
   if (browser) await browser.close().catch(() => undefined)
   if (child.exitCode === null) child.kill()

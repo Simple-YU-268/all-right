@@ -13,13 +13,16 @@ src-tauri/gen/schemas/
 dev.log
 dev.err
 
-# Impeccable 的本地工作区：运行时状态与草稿不进仓库
-.impeccable/questions/
-.impeccable/scratch/
-.impeccable/*.txt
-.impeccable/noto-serif-sc.css
+# 本地设计工作区与辅助脚本
+.impeccable/
+/DESIGN.md
+/PRODUCT.md
+/scripts/shoot-sketch.mjs
+/scripts/shoot-summary.mjs
+/scripts/shots.mjs
+/scripts/wait-answer.ps1
 
-# 本地 agent 技能目录（impeccable 自身的副本，不是本项目代码）
+# 本地 agent 技能目录
 .agents/
 
 # 编辑器与系统
