@@ -6,7 +6,7 @@
 
 **离线电子刷题台** · 章节直达 · 错题本 · 进度看板 · 图片题
 
-[![release](https://img.shields.io/badge/release-v0.3.0-4a5dab)](https://github.com/Simple-YU-268/all-right/releases/tag/v0.3.0)
+[![release](https://img.shields.io/badge/release-v0.3.1-4a5dab)](https://github.com/Simple-YU-268/all-right/releases/tag/v0.3.1)
 [![platform](https://img.shields.io/badge/platform-Windows%20x64-4a5dab)](https://github.com/Simple-YU-268/all-right/releases)
 [![stack](https://img.shields.io/badge/stack-Rust%20%2B%20Tauri%202%20%2B%20React-4a5dab)](https://tauri.app)
 [![offline](https://img.shields.io/badge/data-local%20only%20%2F%20never%20uploaded-2c7355)](https://github.com/Simple-YU-268/all-right)
@@ -49,11 +49,12 @@
 
 ## 下载
 
-Windows x64 安装包见 [Releases](https://github.com/Simple-YU-268/all-right/releases)，当前版本 **v0.3.0**：
+Windows x64 安装包见 [Releases](https://github.com/Simple-YU-268/all-right/releases)，当前版本 **v0.3.1**：
 
 | 文件 | 说明 | 大小 |
 | --- | --- | --- |
-| [`ALLRIGHT-Setup-0.3.0.exe`](https://github.com/Simple-YU-268/all-right/releases/download/v0.3.0/ALLRIGHT-Setup-0.3.0.exe) | 安装版。可选安装目录，建桌面与开始菜单快捷方式，带卸载程序 | 约 8.2 MiB |
+| [`ALLRIGHT-Setup-0.3.1.exe`](https://github.com/Simple-YU-268/all-right/releases/download/v0.3.1/ALLRIGHT-Setup-0.3.1.exe) | 安装版。可选安装目录，建桌面与开始菜单快捷方式，带卸载程序 | 约 8.2 MiB |
+| [`ALLRIGHT-MCP-0.3.1.zip`](https://github.com/Simple-YU-268/all-right/releases/download/v0.3.1/ALLRIGHT-MCP-0.3.1.zip) | 独立 MCP 工具包，需 Node.js 20+，无需 npm install | 见发行版 |
 | `SHA256SUMS.txt` | 安装包 SHA-256 校验值 | — |
 
 安装包和校验值放在同一个发行版里。校验方法：
@@ -75,6 +76,14 @@ sha256sum -c SHA256SUMS.txt
 - [项目结构](#项目结构)
 
 ## 快速开始
+
+### Agent 自动整理题库（MCP）
+
+仓库提供本地 stdio MCP 服务，供支持 MCP 的 Agent 查询题库规范、整理字段、校验并生成可导入的 JSON 文件。配置和使用流程见 [MCP 文档](mcp/README.md)。当前版本支持纯文字单选、多选和判断题，不负责 OCR，不直接修改应用工作区；图片题暂不支持。
+
+```bash
+npm run verify:mcp
+```
 
 网页开发需要 Node.js 与 npm：
 

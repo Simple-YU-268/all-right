@@ -244,8 +244,7 @@ export function parseBank(raw: unknown, fallbackName = '未命名题库', option
         { key: '正确', text: '正确' },
         { key: '错误', text: '错误' },
       ]
-      answer = answer.map((a) => (a === '对' || a === 'T' || a === '是' ? '正确' : '错误'))
-      if (!answer.length) {
+      if (answer.length !== 1 || !['正确', '错误'].includes(answer[0])) {
         issues.push({ index, field: 'answer', message: '判断题答案无法识别。' })
         return
       }

@@ -1,11 +1,13 @@
 {
   "name": "all-right",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "description": "ALL RIGHT 全对 · 电子刷题台：导入 JSON 题库，按分类或随机抽题，错题自动收进错题本，看板追踪进度与正确率。",
   "author": "ALL RIGHT 全对",
   "scripts": {
+    "mcp": "node mcp/launch.mjs",
+    "verify:mcp": "node scripts/verify-mcp.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
@@ -27,12 +29,14 @@
   },
   "dependencies": {
     "@icon-park/react": "^1.4.2",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-dialog": "^2.0.0",
     "@tauri-apps/plugin-fs": "^2.0.0",
     "fflate": "^0.8.3",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0",
