@@ -3,7 +3,10 @@ node_modules/
 dist/
 src-tauri/resources/*.exe
 src-tauri/resources/mcp-server.mjs
+src-tauri/resources/mcp-selftest.mjs
 src-tauri/resources/rust-source-supplement.zip
+src-tauri/resources/THIRD_PARTY_NOTICES.md
+src-tauri/resources/RUST_THIRD_PARTY_NOTICES.md
 release/
 build/icon.png
 tsconfig.tsbuildinfo

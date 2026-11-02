@@ -35,6 +35,9 @@ try {
   const missing = structuredClone(bank)
   delete missing.questions[0].answer
   assert.equal((await call('normalize_bank', { bank: missing })).valid, false)
+  missing.questions[2].options[1].key = missing.questions[2].options[0].key
+  const located = await call('validate_bank', { bank: missing })
+  assert.ok(located.errors.some(error => error.code === 'DUPLICATE_OPTION' && error.path === 'questions[2].options'))
   const result = await call('build_bank_file', { bank, filename: 'bank.json' })
   assert.equal(result.questionCount, 3)
   assert.equal(JSON.parse(await readFile(path.join(directory, 'bank.json'), 'utf8')).questions.length, 3)

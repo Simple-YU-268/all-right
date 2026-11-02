@@ -19,4 +19,6 @@ for (const [location, metadata] of Object.entries(lock.packages).sort(([a], [b])
 }
 const header = '# Third-Party Notices\n\nGenerated from package-lock.json. Includes installed production npm dependencies and their bundled license/notice files. Development tools, Rust dependencies, fonts and the Bun runtime are tracked separately in docs/open-source.md.\n\n'
 await fs.writeFile('THIRD_PARTY_NOTICES.md', header + sections.join('\n\n---\n\n') + '\n')
+await fs.mkdir('src-tauri/resources', { recursive: true })
+await fs.copyFile('THIRD_PARTY_NOTICES.md', 'src-tauri/resources/THIRD_PARTY_NOTICES.md')
 console.log(`Generated notices for ${sections.length} production packages`)

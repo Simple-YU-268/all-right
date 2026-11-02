@@ -9,6 +9,7 @@ export interface ParseIssue {
 }
 
 export interface ParsedBank {
+  sourceIndices?: number[]
   name: string
   questions: Question[]
   issues: ParseIssue[]
@@ -166,6 +167,7 @@ export function parseBank(raw: unknown, fallbackName = '未命名题库', option
   const issues: ParseIssue[] = []
   const warnings: string[] = []
   const valid: Question[] = []
+  const sourceIndices: number[] = []
   const knownAssets = options.assets
 
   let bankName = fallbackName
@@ -310,9 +312,10 @@ export function parseBank(raw: unknown, fallbackName = '未命名题库', option
     }
 
     valid.push(question)
+    sourceIndices.push(i)
   })
 
-  return { name: bankName, questions: valid, issues, warnings, valid }
+  return { name: bankName, questions: valid, issues, warnings, valid, sourceIndices }
 }
 
 export function readBankFile(text: string, fallbackName: string, options: ParseOptions = {}): ParsedBank {

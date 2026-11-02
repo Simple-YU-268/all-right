@@ -9,7 +9,7 @@ import { TEMPLATE, FIELD_ALIASES } from '../src/domain/bankTemplate.ts'
 const requestedOutput = process.env.ALLRIGHT_OUTPUT_DIR || process.cwd()
 await mkdir(requestedOutput, { recursive: true })
 const outputDirectory = await realpath(requestedOutput)
-const server = new McpServer({ name: 'allright-mcp', version: '0.4.1' })
+const server = new McpServer({ name: 'allright-mcp', version: '0.4.2' })
 const inputSchema = { bank: z.unknown().describe('Source bank object or question array; never invent missing answers.') }
 const response = (data, isError = false) => ({
   content: [{ type: 'text', text: JSON.stringify(data, null, 2) }],
@@ -57,7 +57,7 @@ function inspect(bank) {
   }
   if (hasImage(bank)) errors.push({ code: 'IMAGES_UNSUPPORTED', path: 'questions', message: 'This MCP version cannot export images. Use the desktop pack workflow.' })
   for (const [index, question] of parsed.questions.entries()) {
-    const prefix = `questions[${index}]`
+    const prefix = `questions[${parsed.sourceIndices?.[index] ?? index}]`
     if (ids.has(question.id)) errors.push({ code: 'DUPLICATE_ID', path: `${prefix}.id`, message: question.id })
     ids.add(question.id)
     if (question.type !== 'multiple' && question.answer.length !== 1) {

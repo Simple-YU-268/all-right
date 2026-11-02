@@ -23,7 +23,8 @@ try {
     window.__TAURI_INTERNALS__ = {
       invoke: async (command, args, options) => {
         window.nativeCalls.push({ command, args: ArrayBuffer.isView(args) ? Array.from(args) : args, options })
-        if (command === 'get_mcp_config') return { mcpServers: { allright: { command: 'C:\\ALLRIGHT\\resources\\allright-mcp.exe', env: { ALLRIGHT_OUTPUT_DIR: 'C:\\ALLRIGHT\\output' } } } }
+        if (command === 'check_mcp') return '连接正常，四个 MCP 工具可用'
+        if (command === 'get_mcp_config') return { mcpServers: { allright: { command: 'C:\\ALLRIGHT\\resources\\node.exe', args: ['C:\\ALLRIGHT\\resources\\mcp-server.mjs'], env: { ALLRIGHT_OUTPUT_DIR: 'C:\\ALLRIGHT\\output' } } } }
         if (command === 'load_workspace') {
           await new Promise((resolve) => setTimeout(resolve, 100))
           if (localStorage.getItem('mock-load-failure')) throw new Error('模拟读取失败')
@@ -61,7 +62,9 @@ try {
   assert.match(await page.locator('.content__inner').innerText(), /桌面接口测试题/)
   await navigate('设置')
   await page.getByRole('button', { name: '复制 MCP 配置', exact: true }).waitFor()
-  assert.match(await page.locator('.settings').innerText(), /allright-mcp\.exe/)
+  assert.match(await page.locator('.settings').innerText(), /mcp-server\.mjs/)
+  await page.getByRole('button', { name: '检测 MCP', exact: true }).click()
+  await page.getByRole('status').filter({ hasText: '连接正常，四个 MCP 工具可用' }).waitFor()
   assert.match(await page.locator('.settings').innerText(), /workspace.json/)
   await page.getByRole('button', { name: '导出备份', exact: true }).click()
   await page.waitForFunction(() => window.nativeCalls.some((call) => call.command === 'plugin:fs|write_text_file'))

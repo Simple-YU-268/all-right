@@ -179,6 +179,26 @@ fn get_mcp_config(app: AppHandle) -> Result<serde_json::Value, String> {
     }}}))
 }
 
+#[tauri::command]
+async fn check_mcp(app: AppHandle) -> Result<String, String> {
+    let directory = app.path().resource_dir().map_err(|e| e.to_string())?.join("resources");
+    for name in ["node.exe", "mcp-server.mjs", "mcp-selftest.mjs"] {
+        if !directory.join(name).is_file() { return Err(format!("安装资源缺失：{name}")); }
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut command = std::process::Command::new(directory.join("node.exe"));
+        command.arg(directory.join("mcp-selftest.mjs")).arg(directory.join("mcp-server.mjs"));
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            command.creation_flags(0x08000000);
+        }
+        let output = command.output().map_err(|e| format!("MCP 启动失败：{e}"))?;
+        if !output.status.success() { return Err(format!("MCP 协议自检失败：{}", String::from_utf8_lossy(&output.stderr))); }
+        Ok("连接正常，四个 MCP 工具可用".to_string())
+    }).await.map_err(|e| e.to_string())?
+}
+
 pub fn run() {
     tauri::Builder::default()
         .manage(Mutex::new(()))
@@ -192,7 +212,8 @@ pub fn run() {
             read_asset,
             delete_assets,
             list_assets,
-            get_mcp_config
+            get_mcp_config,
+            check_mcp
         ])
         .run(tauri::generate_context!())
         .expect("无法启动 ALL RIGHT 全对");

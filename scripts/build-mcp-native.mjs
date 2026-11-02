@@ -19,3 +19,6 @@ await writeFile('src-tauri/resources/NODE-LICENSE.txt', await license.text())
 await build({ entryPoints: ['mcp/server.mjs'], outfile: 'src-tauri/resources/mcp-server.mjs', bundle: true,
   platform: 'node', format: 'esm', target: 'node24',
   banner: { js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);" } })
+await build({ entryPoints: ['mcp/selftest.mjs'], outfile: 'src-tauri/resources/mcp-selftest.mjs', bundle: true,
+  platform: 'node', format: 'esm', target: 'node24',
+  banner: { js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);" } })
