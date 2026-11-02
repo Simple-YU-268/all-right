@@ -6,13 +6,15 @@
 import { chromium } from 'playwright-core'
 import { spawn } from 'node:child_process'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, existsSync, mkdirSync, copyFileSync, readdirSync } from 'node:fs'
+import { mkdtempSync, existsSync, copyFileSync, readdirSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const PORTABLE = join(ROOT, 'release', 'ALLRIGHT-Portable-1.0.0.exe')
+/* 产物名里带版本号，这里按 package.json 的版本去找，不用每次发版都改脚本 */
+const VERSION = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version
+const PORTABLE = join(ROOT, 'release', `ALLRIGHT-Portable-${VERSION}.exe`)
 const PORT = 9334
 const SANDBOX = mkdtempSync(join(tmpdir(), 'allright-portable-'))
 const DATA_DIR = join(SANDBOX, 'data')
@@ -38,7 +40,7 @@ if (!existsSync(PORTABLE)) {
 }
 
 /* 把便携版拷到沙箱目录再跑，模拟"U 盘拷走"的真实场景 */
-const EXE = join(SANDBOX, 'ALLRIGHT-Portable-1.0.0.exe')
+const EXE = join(SANDBOX, `ALLRIGHT-Portable-${VERSION}.exe`)
 copyFileSync(PORTABLE, EXE)
 
 const child = spawn(EXE, [`--remote-debugging-port=${PORT}`], {

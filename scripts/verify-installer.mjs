@@ -3,13 +3,15 @@
    跑法：npm run electron:build && npm run verify:installer */
 import { chromium } from 'playwright-core'
 import { spawn, execFileSync } from 'node:child_process'
-import { mkdtempSync, existsSync, readdirSync } from 'node:fs'
+import { mkdtempSync, existsSync, readdirSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const SETUP = join(ROOT, 'release', 'ALLRIGHT-Setup-1.0.0.exe')
+/* 产物名里带版本号，这里按 package.json 的版本去找，不用每次发版都改脚本 */
+const VERSION = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version
+const SETUP = join(ROOT, 'release', `ALLRIGHT-Setup-${VERSION}.exe`)
 const INSTALL_DIR = join(tmpdir(), 'allright-install-test')
 const PORT = 9335
 
