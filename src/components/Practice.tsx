@@ -3,9 +3,11 @@ import { ArrowRight, Check, Left as ChevronLeft, Help as CircleHelp, Time as Clo
 import { useApp } from '../domain/store'
 import { collectWrongBook, formatDuration, formatPercent } from '../domain/stats'
 import { buildSession, isAnswerCorrect, newId } from '../domain/session'
+import { collectAssetIds } from '../domain/content'
 import type { Question, SessionMode } from '../domain/types'
 import type { Route } from '../App'
 import { EmptyState, MasteryMark, Segmented } from './bits'
+import { MediaFigure, QuestionContent, splitOptionBlocks, useMissingAssets } from './QuestionContent'
 import { masteryOf } from '../domain/stats'
 
 const COUNTS = [
@@ -48,6 +50,18 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
   useEffect(() => {
     setSelected([])
   }, [session?.index, session?.id])
+
+  /* 钩子要排在提前 return 之前，不然切页面时 React 会抱怨 */
+  const requiredAssetIds = useMemo(
+    () => (current
+      ? [
+        ...collectAssetIds(current.stemBlocks),
+        ...current.options.flatMap((option) => collectAssetIds(option.blocks)),
+      ]
+      : []),
+    [current],
+  )
+  const missingImages = useMissingAssets(requiredAssetIds)
 
   if (summary) {
     return <Summary summary={summary} onNavigate={onNavigate} />
@@ -170,12 +184,17 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
               {current.type === 'multiple' ? <span className="chip">多选</span> : null}
             </div>
 
-            <p className="t-stem practice__stem">{current.stem}</p>
+            <QuestionContent
+              blocks={current.stemBlocks}
+              fallback={current.stem}
+              className="t-stem practice__stem"
+            />
 
             <div className="options" role="group" aria-label="选项">
               {current.options.map((opt) => {
                 const isChosen = selected.includes(opt.key)
                 const isAnswer = current.answer.includes(opt.key)
+                const { text, media } = splitOptionBlocks(opt.blocks)
                 let cls = 'option'
                 if (revealed) {
                   if (isAnswer) cls += ' option--right'
@@ -187,25 +206,39 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
                 /* 揭晓之后才需要标出「这是你划的那一条」，和老师批的对错分开记 */
                 if (revealed && isChosen) cls += ' option--picked'
                 return (
-                  <button
-                    type="button"
-                    key={opt.key}
-                    className={cls}
-                    onClick={() => toggle(opt.key)}
-                    disabled={revealed}
-                    aria-pressed={isChosen}
-                  >
-                    <span className="option__key" aria-hidden="true">
-                      {opt.key}
-                    </span>
-                    <span className="option__text">{opt.text}</span>
-                    {revealed && isAnswer ? (
-                      <Check className="option__mark" size={17} strokeWidth={2.6} aria-hidden="true" />
+                  <div className={cls} key={opt.key}>
+                    <button
+                      type="button"
+                      className="option__pick"
+                      onClick={() => toggle(opt.key)}
+                      disabled={revealed}
+                      aria-pressed={isChosen}
+                    >
+                      <span className="option__key" aria-hidden="true">
+                        {opt.key}
+                      </span>
+                      <span className="option__text">
+                        {text.length
+                          ? text.map((block, index) =>
+                              block.type === 'text' ? <span key={index}>{block.text}</span> : null,
+                            )
+                          : opt.text}
+                      </span>
+                      {revealed && isAnswer ? (
+                        <Check className="option__mark" size={17} strokeWidth={2.6} aria-hidden="true" />
+                      ) : null}
+                      {revealed && !isAnswer && isChosen ? (
+                        <X className="option__mark" size={17} strokeWidth={2.6} aria-hidden="true" />
+                      ) : null}
+                    </button>
+                    {media.length ? (
+                      <div className="option__media">
+                        {media.map((block, index) => (
+                          <MediaFigure block={block} key={index} />
+                        ))}
+                      </div>
                     ) : null}
-                    {revealed && !isAnswer && isChosen ? (
-                      <X className="option__mark" size={17} strokeWidth={2.6} aria-hidden="true" />
-                    ) : null}
-                  </button>
+                  </div>
                 )
               })}
             </div>
@@ -243,10 +276,14 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
                     <span className="result__detail">掌握度又进了一级</span>
                   )}
                 </div>
-                {current.explanation ? (
+                {current.explanation || current.explanationBlocks?.length ? (
                   <div className="explain">
                     <p className="explain__label">解析</p>
-                    <p className="explain__body">{current.explanation}</p>
+                    <QuestionContent
+                      blocks={current.explanationBlocks}
+                      fallback={current.explanation}
+                      className="explain__body"
+                    />
                   </div>
                 ) : null}
               </>
@@ -263,15 +300,19 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
                   type="button"
                   className="btn btn--primary btn--lg"
                   onClick={submit}
-                  disabled={!selected.length}
+                  disabled={!selected.length || missingImages}
                 >
                   确认答案
                 </button>
               )}
               {!revealed ? (
-                <span className="t-meta">
-                  {current.type === 'multiple' ? '可多选，选完再确认' : '选一个选项'}
-                </span>
+                missingImages ? (
+                  <span className="t-meta" role="status">有图片没加载出来，这题先别提交。</span>
+                ) : (
+                  <span className="t-meta">
+                    {current.type === 'multiple' ? '可多选，选完再确认' : '选一个选项'}
+                  </span>
+                )
               ) : null}
             </div>
           </div>
@@ -377,7 +418,11 @@ function Summary({ summary, onNavigate }: { summary: PracticeSummary; onNavigate
                           <X size={13} strokeWidth={2.4} />
                         </span>
                         <div className="wrongrow__body">
-                          <p className="wrongrow__stem">{question.stem}</p>
+                          <QuestionContent
+                            blocks={question.stemBlocks}
+                            fallback={question.stem}
+                            className="wrongrow__stem"
+                          />
                           <p className="wrongrow__meta">
                             <span className="chip chip--wrong">你选了 {chosen.join('、')}</span>
                             <span className="chip chip--right">正确 {question.answer.join('、')}</span>

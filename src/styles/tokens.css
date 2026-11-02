@@ -31,6 +31,8 @@
   --rail: #1a2247;
   --rail-ink: #ffffff;
   --rail-ink-dim: #b9bed8;
+  /* 侧栏宽度：全屏浮层要靠它让开，别压在导航上 */
+  --rail-w: 236px;
 
   /* 状态色：朱红只给错，石绿只给对 */
   --wrong: #b5342a;

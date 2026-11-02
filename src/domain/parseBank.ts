@@ -1,3 +1,4 @@
+import { blocksToText, collectAssetIds, normalizeBlocks } from './content'
 import type { Option, Question, QuestionType } from './types'
 
 export interface ParseIssue {
@@ -11,8 +12,18 @@ export interface ParsedBank {
   name: string
   questions: Question[]
   issues: ParseIssue[]
+  /** 不影响导入、但值得说一句的提示（比如解析里的图缺了）。 */
+  warnings: string[]
   /** Questions that parsed cleanly, offered to the user when issues exist. */
   valid: Question[]
+}
+
+export interface ParseOptions {
+  /**
+   * 题库里已有的图片资源。给了才会去核对图片引用；
+   * 没给就当成纯文本题库，任何图片引用都算缺资源。
+   */
+  assets?: Record<string, unknown>
 }
 
 const STEM_KEYS = ['stem', 'question', 'title', '题干', '题目', '问题', 'content']
@@ -90,9 +101,13 @@ function normalizeOptions(raw: unknown): Option[] | null {
       }
       if (entry && typeof entry === 'object') {
         const rec = entry as Record<string, unknown>
-        const text = asText(pick(rec, ['text', 'value', 'label', 'content', '选项', '文本']))
+        const blocks = normalizeBlocks(rec.blocks ?? rec.contentBlocks ?? rec.parts)
+        const text = asText(pick(rec, ['text', 'value', 'label', 'content', '选项', '文本'])) ||
+          blocksToText(blocks)
         const key = asText(pick(rec, ['key', 'label', 'id', '字母', '编号']))
-        return { key: key || String.fromCharCode(65 + i), text }
+        const option: Option = { key: key || String.fromCharCode(65 + i), text }
+        if (blocks.length) option.blocks = blocks
+        return option
       }
       return { key: String.fromCharCode(65 + i), text: '' }
     })
@@ -147,9 +162,11 @@ function fallbackId(bankName: string, index: number): string {
   return `${bankName}::${index}-${counter.toString(36)}`
 }
 
-export function parseBank(raw: unknown, fallbackName = '未命名题库'): ParsedBank {
+export function parseBank(raw: unknown, fallbackName = '未命名题库', options: ParseOptions = {}): ParsedBank {
   const issues: ParseIssue[] = []
+  const warnings: string[] = []
   const valid: Question[] = []
+  const knownAssets = options.assets
 
   let bankName = fallbackName
   let rawQuestions: unknown[] = []
@@ -169,7 +186,7 @@ export function parseBank(raw: unknown, fallbackName = '未命名题库'): Parse
     }
   } else {
     issues.push({ index: 0, field: 'root', message: 'JSON 根节点既不是数组也不是对象。' })
-    return { name: bankName, questions: [], issues, valid: [] }
+    return { name: bankName, questions: [], issues, warnings, valid: [] }
   }
 
   rawQuestions.forEach((entry, i) => {
@@ -180,7 +197,8 @@ export function parseBank(raw: unknown, fallbackName = '未命名题库'): Parse
     }
     const rec = entry as Record<string, unknown>
 
-    const stem = asText(pick(rec, STEM_KEYS))
+    const stemBlocks = normalizeBlocks(rec.stemBlocks ?? rec.stem_blocks ?? rec.contentBlocks)
+    const stem = asText(pick(rec, STEM_KEYS)) || blocksToText(stemBlocks)
     if (!stem) {
       issues.push({ index, field: 'stem', message: '缺少题干。' })
       return
@@ -204,7 +222,7 @@ export function parseBank(raw: unknown, fallbackName = '未命名题库'): Parse
     }
 
     const optionKeys = options.map((o) => o.key)
-    const allOptionsEmpty = options.every((o) => !o.text)
+    const allOptionsEmpty = options.every((o) => !o.text && !o.blocks?.length)
     if (allOptionsEmpty) {
       issues.push({ index, field: 'options', message: '选项内容全为空。' })
       return
@@ -254,23 +272,51 @@ export function parseBank(raw: unknown, fallbackName = '未命名题库'): Parse
     const id = asText(pick(rec, ID_KEYS)) || fallbackId(bankName, index)
     const category = asText(pick(rec, CATEGORY_KEYS)) || defaultCategory || '未分类'
 
-    valid.push({
+    const explanationBlocks = normalizeBlocks(rec.explanationBlocks ?? rec.explanation_blocks ?? rec.analysisBlocks)
+    const question: Question = {
       id,
       type: type ?? 'single',
       stem,
+      ...(stemBlocks.length ? { stemBlocks } : {}),
       options: optionList,
       answer,
       explanation: asText(pick(rec, EXPLANATION_KEYS)),
+      ...(explanationBlocks.length ? { explanationBlocks } : {}),
       category,
       tags: normalizeTags(pick(rec, TAG_KEYS)),
       difficulty: resolveDifficulty(pick(rec, DIFFICULTY_KEYS)),
-    })
+    }
+
+    /* 图片必须是真有的：题干或选项缺图，这题就没法完整作答，只能拦下来。 */
+    const required = [
+      ...collectAssetIds(stemBlocks),
+      ...optionList.flatMap((option) => collectAssetIds(option.blocks)),
+    ]
+    const missingRequired = [...new Set(required)].filter((id) => !knownAssets || !(id in knownAssets))
+    if (missingRequired.length) {
+      issues.push({
+        index,
+        field: '图片',
+        message: `缺少图片资源（${missingRequired.length} 张），题干或选项配图没能带进来。`,
+      })
+      return
+    }
+
+    /* 解析里的图缺了不影响作答，只记一笔。 */
+    const missingExtras = [...new Set(collectAssetIds(explanationBlocks))].filter(
+      (id) => !knownAssets || !(id in knownAssets),
+    )
+    if (missingExtras.length) {
+      warnings.push(`第 ${index} 题的解析缺 ${missingExtras.length} 张图，导入后那里会留个空位。`)
+    }
+
+    valid.push(question)
   })
 
-  return { name: bankName, questions: valid, issues, valid }
+  return { name: bankName, questions: valid, issues, warnings, valid }
 }
 
-export function readBankFile(text: string, fallbackName: string): ParsedBank {
+export function readBankFile(text: string, fallbackName: string, options: ParseOptions = {}): ParsedBank {
   let raw: unknown
   try {
     raw = JSON.parse(text)
@@ -280,8 +326,9 @@ export function readBankFile(text: string, fallbackName: string): ParsedBank {
       name: fallbackName,
       questions: [],
       valid: [],
+      warnings: [],
       issues: [{ index: 0, field: 'JSON', message: `JSON 解析失败：${message}` }],
     }
   }
-  return parseBank(raw, fallbackName)
+  return parseBank(raw, fallbackName, options)
 }

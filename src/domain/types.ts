@@ -1,17 +1,26 @@
 export type QuestionType = 'single' | 'multiple' | 'judge'
 
+/** 内容块：题干、选项、解析既能是纯文字，也能图文交替。 */
+export type ContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'image'; assetId: string; alt: string }
+
 export interface Option {
   key: string
   text: string
+  /** 有内容块时按内容块排版，没有就退回 text。 */
+  blocks?: ContentBlock[]
 }
 
 export interface Question {
   id: string
   type: QuestionType
   stem: string
+  stemBlocks?: ContentBlock[]
   options: Option[]
   answer: string[]
   explanation: string
+  explanationBlocks?: ContentBlock[]
   category: string
   tags: string[]
   difficulty: number
@@ -22,6 +31,12 @@ export interface Bank {
   name: string
   importedAt: number
   questions: Question[]
+}
+
+/** 一张图片的登记信息：内容哈希当 ID，字节数只用来显示体积。 */
+export interface AssetMeta {
+  mime: string
+  bytes: number
 }
 
 export interface AttemptRecord {
@@ -59,21 +74,24 @@ export interface SessionRecord {
 }
 
 export interface Workspace {
-  version: 1
+  version: 2
   banks: Bank[]
   activeBankId: string | null
   attempts: AttemptRecord[]
   stats: Record<string, QuestionStat>
   sessions: SessionRecord[]
+  /** 工作区里用到的图片清单；图片本体存在资源仓库里，不塞进这份 JSON。 */
+  assets: Record<string, AssetMeta>
 }
 
 export const EMPTY_WORKSPACE: Workspace = {
-  version: 1,
+  version: 2,
   banks: [],
   activeBankId: null,
   attempts: [],
   stats: {},
   sessions: [],
+  assets: {},
 }
 
 export const MASTERY_LABELS = ['未练习', '生疏', '眼熟', '熟练', '牢固', '已掌握'] as const

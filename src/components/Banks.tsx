@@ -3,33 +3,57 @@ import { ArrowRight, Robot as Bot, Download, FileCode as FileJson, Delete as Tra
 import { useApp } from '../domain/store'
 import { readBankFile, type ParsedBank } from '../domain/parseBank'
 import { computeDashboard, formatPercent } from '../domain/stats'
-import { downloadJson } from '../domain/storage'
+import { downloadBinary, downloadJson } from '../domain/storage'
 import { AI_PROMPT, TEMPLATE } from '../domain/bankTemplate'
-import type { Bank } from '../domain/types'
+import { buildBankExport, buildWorkspaceBackup } from '../domain/backup'
+import { looksLikePack, readPack } from '../domain/pack'
+import { saveAsset } from '../domain/assets'
+import type { AssetMeta, Bank } from '../domain/types'
 import type { Route } from '../App'
 import { CopyButton, EmptyState } from './bits'
 import { confirmAction } from '../domain/shell'
 import { ChapterGuide } from './ChapterGuide'
 import { ChapterManager } from './ChapterManager'
 
+interface PendingImport {
+  parsed: ParsedBank
+  /** 包里带的图片本体，落盘之后才真正进题库。 */
+  files: Map<string, Uint8Array>
+  assets: Record<string, AssetMeta>
+}
+
 export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const { workspace, activeBank, addBank, removeBank, setActiveBank } = useApp()
   const inputRef = useRef<HTMLInputElement>(null)
-  const [pending, setPending] = useState<ParsedBank | null>(null)
+  const [pending, setPending] = useState<PendingImport | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [pasteOpen, setPasteOpen] = useState(false)
   const [pasted, setPasted] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
 
   const acceptFile = async (file: File) => {
     setError(null)
-    const text = await file.text()
-    const parsed = readBankFile(text, file.name.replace(/\.json$/i, ''))
-    if (!parsed.valid.length && parsed.issues.length) {
-      setPending(parsed)
-      return
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer())
+      if (looksLikePack(bytes)) {
+        const pack = readPack(bytes)
+        if (pack.kind !== 'bank') {
+          setError('这是一个工作区备份包，请到「设置」页恢复。')
+          return
+        }
+        setPending({ parsed: pack.parsed, files: pack.files, assets: pack.assets })
+        return
+      }
+      const text = new TextDecoder('utf-8').decode(bytes)
+      setPending({
+        parsed: readBankFile(text, file.name.replace(/\.(json|allright)$/i, '')),
+        files: new Map(),
+        assets: {},
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
     }
-    setPending(parsed)
   }
 
   const loadSample = async () => {
@@ -38,33 +62,61 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
       /* 跟着构建的 base 走：挂在子目录时也能找到示例题库 */
       const res = await fetch(`${import.meta.env.BASE_URL}sample-bank.json`)
       const text = await res.text()
-      setPending(readBankFile(text, '示例题库'))
+      setPending({ parsed: readBankFile(text, '示例题库'), files: new Map(), assets: {} })
     } catch {
       setError('读取示例题库失败，请确认 dev server 正在运行。')
     }
   }
 
-  const commit = () => {
-    if (!pending || !pending.valid.length) return
-    const bank: Bank = {
-      id: `bank-${Date.now().toString(36)}`,
-      name: pending.name,
-      importedAt: Date.now(),
-      questions: pending.valid,
+  const loadImageSample = async () => {
+    setError(null)
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}sample-image-bank.allright`)
+      if (!res.ok) throw new Error('找不到示例图片题库')
+      const blob = await res.blob()
+      const file = new File([blob], 'sample-image-bank.allright', { type: 'application/octet-stream' })
+      await acceptFile(file)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
     }
-    addBank(bank)
-    setPending(null)
-    setPasted('')
-    setPasteOpen(false)
-    onNavigate('dashboard')
+  }
+
+  const commit = async () => {
+    if (!pending || !pending.parsed.valid.length || busy) return
+    setBusy(true)
+    try {
+      /* 图片先落盘：存不下就别导题库，免得出现「题库在、图没了」。 */
+      const assets: Record<string, AssetMeta> = {}
+      for (const [id, bytes] of pending.files) {
+        const stored = await saveAsset(bytes)
+        assets[id] = { mime: stored.mime, bytes: stored.bytes }
+      }
+      const bank: Bank = {
+        id: `bank-${Date.now().toString(36)}`,
+        name: pending.parsed.name,
+        importedAt: Date.now(),
+        questions: pending.parsed.valid,
+      }
+      addBank(bank, { ...pending.assets, ...assets })
+      setPending(null)
+      setPasted('')
+      setPasteOpen(false)
+      onNavigate('dashboard')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
   }
 
   const parsedStats = useMemo(() => {
     if (!pending) return null
-    const categories = new Set(pending.valid.map((q) => q.category)).size
+    const questions = pending.parsed.valid
+    const categories = new Set(questions.map((q) => q.category)).size
     const types = { single: 0, multiple: 0, judge: 0 }
-    for (const q of pending.valid) types[q.type] += 1
-    return { categories, types, total: pending.valid.length }
+    for (const q of questions) types[q.type] += 1
+    const imageBytes = [...pending.files.values()].reduce((sum, bytes) => sum + bytes.length, 0)
+    return { categories, types, total: questions.length, images: pending.files.size, imageBytes }
   }, [pending])
 
   return (
@@ -75,7 +127,16 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
           <p className="topbar__sub">{workspace.banks.length} 个题库 · 数据保存在本机</p>
         </div>
         <div className="topbar__actions">
-          <button type="button" className="btn btn--sm" onClick={() => downloadJson('allright-工作区备份.json', workspace)}>
+          <button
+            type="button"
+            className="btn btn--sm"
+            onClick={() => {
+              void buildWorkspaceBackup(workspace).then((backup) => {
+                if (backup.isPack) downloadBinary(backup.filename, backup.bytes)
+                else downloadJson(backup.filename, JSON.parse(new TextDecoder().decode(backup.bytes)))
+              }).catch((error: unknown) => setError(`导出失败：${String(error)}`))
+            }}
+          >
             <Download size={14} strokeWidth={2} />
             导出备份
           </button>
@@ -110,6 +171,10 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                   <p className="dropzone__hint">
                     或直接选择文件。每题的 category 是章节名；导入前会预览题量、章节与题型分布，有问题会逐条指出是哪一题。
                   </p>
+                  <p className="dropzone__hint">
+                    带图片的题库用 <code className="t-data">.allright</code> 题库包（一个 zip，里面是 bank.json 加 assets/），
+                    拖进来一样能导入。
+                  </p>
                   <div className="dropzone__actions">
                     <button type="button" className="btn btn--primary" onClick={() => inputRef.current?.click()}>
                       <Upload size={14} strokeWidth={2} />
@@ -120,6 +185,9 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                     </button>
                     <button type="button" className="btn" onClick={() => void loadSample()}>
                       载入示例题库
+                    </button>
+                    <button type="button" className="btn" onClick={() => void loadImageSample()}>
+                      载入图片题示例
                     </button>
                     <button
                       type="button"
@@ -133,7 +201,7 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                   <input
                     ref={inputRef}
                     type="file"
-                    accept="application/json,.json"
+                    accept="application/json,.json,.allright,.zip"
                     className="sr-only"
                     onChange={(e) => {
                       const file = e.target.files?.[0]
@@ -159,7 +227,11 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                       <button
                         type="button"
                         className="btn btn--sm"
-                        onClick={() => setPending(readBankFile(pasted, '粘贴的题库'))}
+                        onClick={() => setPending({
+                          parsed: readBankFile(pasted, '粘贴的题库'),
+                          files: new Map(),
+                          assets: {},
+                        })}
                         disabled={!pasted.trim()}
                       >
                         解析这段 JSON
@@ -180,7 +252,7 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
               <section className="preview">
                 <header className="preview__head">
                   <p className="preview__title">导入预览</p>
-                  <span className="chip chip--blue">{pending.name}</span>
+                  <span className="chip chip--blue">{pending.parsed.name}</span>
                 </header>
                 {parsedStats ? (
                   <div className="preview__stats">
@@ -204,17 +276,23 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                       <span className="t-label">判断</span>
                       <b>{parsedStats.types.judge}</b>
                     </div>
+                    {parsedStats.images > 0 ? (
+                      <div className="preview__stat">
+                        <span className="t-label">配图</span>
+                        <b>{parsedStats.images}</b>
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
 
-                {pending.valid.length > 0 ? <ChapterDistribution questions={pending.valid} /> : null}
+                {pending.parsed.valid.length > 0 ? <ChapterDistribution questions={pending.parsed.valid} /> : null}
 
-                {pending.issues.length > 0 ? (
+                {pending.parsed.issues.length > 0 ? (
                   <div className="issues">
                     <p className="t-label" style={{ color: 'var(--wrong)', marginBottom: 'var(--s2)' }}>
-                      {pending.issues.length} 处需要确认
+                      {pending.parsed.issues.length} 处需要确认
                     </p>
-                    {pending.issues.slice(0, 40).map((issue, i) => (
+                    {pending.parsed.issues.slice(0, 40).map((issue, i) => (
                       <p className="issue" key={`${issue.index}-${i}`}>
                         <span className="issue__where">{issue.index ? `第 ${issue.index} 题` : '文件'}</span>
                         <span>
@@ -222,20 +300,36 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                         </span>
                       </p>
                     ))}
-                    {pending.issues.length > 40 ? (
-                      <p className="issue">还有 {pending.issues.length - 40} 处未显示</p>
+                    {pending.parsed.issues.length > 40 ? (
+                      <p className="issue">还有 {pending.parsed.issues.length - 40} 处未显示</p>
                     ) : null}
                   </div>
                 ) : null}
 
+                {pending.parsed.warnings.length > 0 ? (
+                  <div className="issues">
+                    {pending.parsed.warnings.slice(0, 10).map((warning, i) => (
+                      <p className="issue" key={i}>
+                        <span className="issue__where">提示</span>
+                        <span>{warning}</span>
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+
                 <div className="preview__actions">
-                  <button type="button" className="btn btn--primary" onClick={commit} disabled={!pending.valid.length}>
-                    导入 {pending.valid.length} 题
+                  <button
+                    type="button"
+                    className="btn btn--primary"
+                    onClick={() => void commit()}
+                    disabled={!pending.parsed.valid.length || busy}
+                  >
+                    导入 {pending.parsed.valid.length} 题
                   </button>
                   <button type="button" className="btn btn--ghost" onClick={() => setPending(null)}>
                     取消
                   </button>
-                  {pending.issues.length > 0 && pending.valid.length > 0 ? (
+                  {pending.parsed.issues.length > 0 && pending.parsed.valid.length > 0 ? (
                     <span className="t-meta" style={{ marginLeft: 'auto', alignSelf: 'center' }}>
                       有问题的题目会被跳过，其余照常导入
                     </span>
@@ -280,7 +374,12 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                             type="button"
                             className="btn btn--sm"
                             aria-label={`导出题库「${bank.name}」`}
-                            onClick={() => downloadJson(`${bank.name}.json`, { name: bank.name, questions: bank.questions })}
+                            onClick={() => {
+                              void buildBankExport(bank).then((exported) => {
+                                if (exported.isPack) downloadBinary(exported.filename, exported.bytes)
+                                else downloadJson(exported.filename, JSON.parse(new TextDecoder().decode(exported.bytes)))
+                              }).catch((error: unknown) => setError(`导出失败：${String(error)}`))
+                            }}
                           >
                             <Download size={13} strokeWidth={2} />
                           </button>

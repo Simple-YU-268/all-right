@@ -23,6 +23,8 @@ export interface ChapterResult {
 
 function sameQuestion(left: Question, right: Question): boolean {
   return left.type === right.type && left.stem === right.stem &&
+    JSON.stringify(left.stemBlocks) === JSON.stringify(right.stemBlocks) &&
+    JSON.stringify(left.explanationBlocks) === JSON.stringify(right.explanationBlocks) &&
     JSON.stringify(left.options) === JSON.stringify(right.options) &&
     JSON.stringify([...left.answer].sort()) === JSON.stringify([...right.answer].sort())
 }

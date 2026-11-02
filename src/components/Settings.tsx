@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
 import { ArrowRight, Download, FileCode as FileJson, Upload } from '@icon-park/react'
 import { useApp } from '../domain/store'
-import { downloadJson, parseWorkspace } from '../domain/storage'
+import { downloadBinary, downloadJson } from '../domain/storage'
+import { buildWorkspaceBackup, commitRestoredAssets, readBackupFile } from '../domain/backup'
 import { FIELD_ALIASES, TEMPLATE, TEMPLATE_PRETTY } from '../domain/bankTemplate'
 import { useMotionPref, type MotionPref } from '../domain/motion'
 import { confirmAction, DATA_PLACE, DATA_RESET, DATA_STORE, IS_TAURI } from '../domain/shell'
@@ -23,10 +24,15 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
 
   const restoreBackup = async (file: File) => {
     try {
-      const backup = parseWorkspace(await file.text())
-      if (!await confirmAction(`恢复备份中的 ${backup.banks.length} 个题库及练习记录？当前本机数据将被替换，请先导出备份。`)) return
-      replaceWorkspace(backup)
-      setBackupStatus(`已恢复 ${backup.banks.length} 个题库及练习记录。`)
+      const backup = await readBackupFile(file)
+      if (!await confirmAction(`恢复备份中的 ${backup.workspace.banks.length} 个题库及练习记录？当前本机数据将被替换，请先导出备份。`)) return
+      /* 图片先落盘，全部成功了再切工作区。 */
+      const restored = await commitRestoredAssets(backup.workspace, backup.files)
+      replaceWorkspace(restored)
+      const images = backup.files.size
+      setBackupStatus(
+        `已恢复 ${restored.banks.length} 个题库及练习记录${images ? `，含 ${images} 张图片` : ''}。`,
+      )
     } catch (error) {
       setBackupStatus(`恢复失败：${String(error)}`)
     }
@@ -34,12 +40,13 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
 
   const clearAll = async () => {
     const empty: Workspace = {
-      version: 1,
+      version: 2,
       banks: [],
       activeBankId: null,
       attempts: [],
       stats: {},
       sessions: [],
+      assets: {},
     }
     if (!await confirmAction('清空这台电脑上的题库、练习记录和错题本？此操作不可撤销。')) return
     replaceWorkspace(empty)
@@ -133,7 +140,12 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
                   <button
                     type="button"
                     className="btn btn--sm"
-                    onClick={() => downloadJson('allright-工作区备份.json', workspace)}
+                    onClick={() => {
+                      void buildWorkspaceBackup(workspace).then((backup) => {
+                        if (backup.isPack) downloadBinary(backup.filename, backup.bytes)
+                        else downloadJson(backup.filename, JSON.parse(new TextDecoder().decode(backup.bytes)))
+                      }).catch((error: unknown) => setBackupStatus(`导出失败：${String(error)}`))
+                    }}
                   >
                     <Download size={13} strokeWidth={2} />
                     导出备份
@@ -141,7 +153,7 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
                   <input
                     ref={backupInput}
                     type="file"
-                    accept=".json,application/json"
+                    accept=".json,.allright,application/json"
                     hidden
                     aria-label="选择工作区备份"
                     onChange={(event) => {

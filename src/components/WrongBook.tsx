@@ -5,6 +5,7 @@ import { collectWrongBook, formatPercent } from '../domain/stats'
 import { buildSession, newId } from '../domain/session'
 import type { Route } from '../App'
 import { EmptyState, MasteryMark } from './bits'
+import { QuestionContent } from './QuestionContent'
 
 type SortKey = 'wrong' | 'recent' | 'category'
 
@@ -184,7 +185,11 @@ export function WrongBook({ onNavigate }: { onNavigate: (route: Route) => void }
                           <X size={13} strokeWidth={2.4} />
                         </span>
                         <div className="wrongrow__body">
-                          <p className="wrongrow__stem">{entry.question.stem}</p>
+                          <QuestionContent
+                            blocks={entry.question.stemBlocks}
+                            fallback={entry.question.stem}
+                            className="wrongrow__stem"
+                          />
                           <p className="wrongrow__meta">
                             <span className="chip chip--wrong">错 {last.wrongCount} 次</span>
                             <span className="chip">正确 {entry.question.answer.join('、')}</span>

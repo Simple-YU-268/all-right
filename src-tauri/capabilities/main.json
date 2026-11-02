@@ -1,7 +1,13 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "main",
-  "description": "主窗口的本地对话框与用户选定文件的导出权限",
+  "description": "主窗口的本地对话框与用户选定文件的导出权限（含题库包等二进制备份）",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:allow-save", "dialog:allow-message", "fs:allow-write-text-file"]
+  "permissions": [
+    "core:default",
+    "dialog:allow-save",
+    "dialog:allow-message",
+    "fs:allow-write-text-file",
+    "fs:allow-write-file"
+  ]
 }

@@ -7,9 +7,11 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { type AttemptRecord, type Bank, type SessionMode, type Workspace } from './types'
+import { type AssetMeta, type AttemptRecord, type Bank, type SessionMode, type Workspace } from './types'
 import { saveWorkspace } from './storage'
 import { saveChapter, deleteChapter, importChapters, type ChapterChange, type ChapterImport } from './chapters'
+import { pruneAssetsExcept, referencedAssetIds } from './assets'
+import { questionAssetIds } from './content'
 
 export interface ActiveSession {
   id: string
@@ -28,8 +30,24 @@ interface State {
   session: ActiveSession | null
 }
 
+/** 图片清单跟着题目走：删掉一个题库，别的题库还在用的图要留下。 */
+function keepAssets(workspace: Workspace, banks: Bank[]): Record<string, AssetMeta> {
+  const used = new Set<string>()
+  for (const bank of banks) {
+    for (const question of bank.questions) {
+      for (const id of questionAssetIds(question)) used.add(id)
+    }
+  }
+  const assets: Record<string, AssetMeta> = {}
+  for (const id of used) {
+    const meta = workspace.assets?.[id]
+    if (meta) assets[id] = meta
+  }
+  return assets
+}
+
 type Action =
-  | { type: 'addBank'; bank: Bank }
+  | { type: 'addBank'; bank: Bank; assets: Record<string, AssetMeta> }
   | { type: 'removeBank'; bankId: string }
   | { type: 'renameBank'; bankId: string; name: string }
   | { type: 'saveChapter'; change: ChapterChange }
@@ -61,7 +79,10 @@ function reducer(state: State, action: Action): State {
           session = { ...session, category: result.category }
         }
       }
-      return { workspace: result.workspace, session }
+      return {
+        workspace: { ...result.workspace, assets: keepAssets(result.workspace, result.workspace.banks) },
+        session,
+      }
     }
     case 'addBank':
       return {
@@ -70,6 +91,7 @@ function reducer(state: State, action: Action): State {
           ...state.workspace,
           banks: [...state.workspace.banks, action.bank],
           activeBankId: action.bank.id,
+          assets: { ...state.workspace.assets, ...action.assets },
         },
       }
     case 'removeBank': {
@@ -87,6 +109,7 @@ function reducer(state: State, action: Action): State {
           stats,
           attempts: state.workspace.attempts.filter((a) => a.bankId !== action.bankId),
           sessions: state.workspace.sessions.filter((s) => s.bankId !== action.bankId),
+          assets: keepAssets(state.workspace, banks),
           activeBankId:
             state.workspace.activeBankId === action.bankId ? (banks[0]?.id ?? null) : state.workspace.activeBankId,
         },
@@ -177,7 +200,7 @@ export interface AppApi {
   workspace: Workspace
   session: ActiveSession | null
   activeBank: Bank | null
-  addBank: (bank: Bank) => void
+  addBank: (bank: Bank, assets?: Record<string, AssetMeta>) => void
   removeBank: (bankId: string) => void
   renameBank: (bankId: string, name: string) => void
   saveChapter: (change: ChapterChange) => void
@@ -221,26 +244,36 @@ export function AppProvider({ children, initialWorkspace }: { children: ReactNod
       workspace: state.workspace,
       session: state.session,
       activeBank,
-      addBank: (bank) => dispatch({ type: 'addBank', bank }),
-      removeBank: (bankId) => dispatch({ type: 'removeBank', bankId }),
+      addBank: (bank, assets) => dispatch({ type: 'addBank', bank, assets: assets ?? {} }),
+      removeBank: (bankId) => {
+        const banks = state.workspace.banks.filter((bank) => bank.id !== bankId)
+        dispatch({ type: 'removeBank', bankId })
+        void pruneAssetsExcept(referencedAssetIds({ ...state.workspace, banks }))
+      },
       renameBank: (bankId, name) => dispatch({ type: 'renameBank', bankId, name }),
       saveChapter: (change) => {
-        saveChapter(state.workspace, change)
+        const result = saveChapter(state.workspace, change)
         dispatch({ type: 'saveChapter', change })
+        void pruneAssetsExcept(referencedAssetIds(result.workspace))
       },
       importChapters: (change) => {
-        importChapters(state.workspace, change)
+        const result = importChapters(state.workspace, change)
         dispatch({ type: 'importChapters', change })
+        void pruneAssetsExcept(referencedAssetIds(result.workspace))
       },
       deleteChapter: (bankId, category) => {
-        deleteChapter(state.workspace, bankId, category)
+        const result = deleteChapter(state.workspace, bankId, category)
         dispatch({ type: 'deleteChapter', bankId, category })
+        void pruneAssetsExcept(referencedAssetIds(result.workspace))
       },
       setActiveBank: (bankId) => dispatch({ type: 'setActiveBank', bankId }),
       recordAttempt: (attempt) => dispatch({ type: 'recordAttempt', attempt }),
       removeFromWrongBook: (questionId) => dispatch({ type: 'removeFromWrongBook', questionId }),
       resetBank: (bankId) => dispatch({ type: 'resetBank', bankId }),
-      replaceWorkspace: (workspace) => dispatch({ type: 'replaceWorkspace', workspace }),
+      replaceWorkspace: (workspace) => {
+        dispatch({ type: 'replaceWorkspace', workspace })
+        void pruneAssetsExcept(referencedAssetIds(workspace))
+      },
       startSession: (session) => dispatch({ type: 'startSession', session }),
       updateSession: (session) => dispatch({ type: 'updateSession', session }),
       endSession: () => dispatch({ type: 'endSession' }),

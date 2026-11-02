@@ -3,6 +3,7 @@ import { Download, Edit, Delete, Upload } from '@icon-park/react'
 import type { Bank } from '../domain/types'
 import { useApp } from '../domain/store'
 import { readBankFile } from '../domain/parseBank'
+import { questionAssetIds } from '../domain/content'
 import { saveChapter as prepareChapter, type ChapterChange } from '../domain/chapters'
 import { downloadJson } from '../domain/storage'
 import { confirmAction } from '../domain/shell'
@@ -89,6 +90,14 @@ export function ChapterManager({ bank }: { bank: Bank }) {
 function ChapterEditor({ bank, editor, onCancel, onSaved }: {
   bank: Bank; editor: EditorState; onCancel: () => void; onSaved: (name: string) => void
 }) {
+  /* 题库里已有的图片：章节编辑只认这些现成的资源，图片本身从题库包来。 */
+  const knownAssets = useMemo(() => {
+    const ids = new Set<string>()
+    for (const question of bank.questions) {
+      for (const id of questionAssetIds(question)) ids.add(id)
+    }
+    return Object.fromEntries([...ids].map((id) => [id, {}]))
+  }, [bank])
   const { workspace, saveChapter, importChapters } = useApp()
   const formId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -101,7 +110,10 @@ function ChapterEditor({ bank, editor, onCancel, onSaved }: {
   const [mode, setMode] = useState<'append' | 'replace'>('append')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const parsed = useMemo(() => text.trim() ? readBankFile(text, bank.name) : null, [text, bank.name])
+  const parsed = useMemo(
+    () => (text.trim() ? readBankFile(text, bank.name, { assets: knownAssets }) : null),
+    [text, bank.name, knownAssets],
+  )
   const sourceChapters = [...new Set(parsed?.valid.map((question) => question.category) ?? [])]
   const selectedSource = sourceChapters.includes(source) ? source : sourceChapters.length === 1 ? sourceChapters[0] : ''
   const batch = editor.kind === 'create' && sourceChapters.length > 1
@@ -115,7 +127,7 @@ function ChapterEditor({ bank, editor, onCancel, onSaved }: {
   const readFile = async (file: File) => {
     try {
       const content = await file.text()
-      const result = readBankFile(content, bank.name)
+      const result = readBankFile(content, bank.name, { assets: knownAssets })
       const categories = [...new Set(result.valid.map((question) => question.category))]
       setText(content)
       setSource('')

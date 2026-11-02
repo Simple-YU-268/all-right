@@ -51,9 +51,17 @@ try {
     await editor.getByRole('button', { name: '保存章节', exact: true }).click()
     await editor.waitFor({ state: 'detached' })
   }
-  const upload = (data) => editor.getByLabel('章节 JSON 文件', { exact: true }).setInputFiles({
-    name: 'chapter.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(data)),
-  })
+  const upload = async (data) => {
+    const content = JSON.stringify(data)
+    await editor.getByLabel('章节 JSON 文件', { exact: true }).setInputFiles({
+      name: 'chapter.json', mimeType: 'application/json', buffer: Buffer.from(content),
+    })
+    /* 文件是异步读的：等编辑框真的写上去了，后面那些断言才不会踩空 */
+    await page.waitForFunction((expected) => {
+      const area = document.querySelector('.chapter-editor__json')
+      return area?.value === expected
+    }, content)
+  }
   const confirmNext = (accept) => page.once('dialog', (dialog) => accept ? dialog.accept() : dialog.dismiss())
 
   await navigate('练习')
