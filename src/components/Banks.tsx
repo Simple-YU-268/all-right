@@ -7,7 +7,7 @@ import { downloadBinary, downloadJson } from '../domain/storage'
 import { AI_PROMPT, TEMPLATE } from '../domain/bankTemplate'
 import { buildBankExport, buildWorkspaceBackup } from '../domain/backup'
 import { looksLikePack, readPack } from '../domain/pack'
-import { saveAsset } from '../domain/assets'
+import { pruneAssetsExcept, referencedAssetIds, saveAsset } from '../domain/assets'
 import type { AssetMeta, Bank } from '../domain/types'
 import type { Route } from '../App'
 import { CopyButton, EmptyState } from './bits'
@@ -103,6 +103,8 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
       setPasteOpen(false)
       onNavigate('dashboard')
     } catch (err) {
+      /* 存到一半失败了：把已经落盘的图片清掉，别留下没人引用的孤儿。 */
+      void pruneAssetsExcept(referencedAssetIds(workspace))
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setBusy(false)
@@ -241,7 +243,7 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                 ) : null}
 
                 {error ? (
-                  <p className="t-meta" style={{ marginTop: 'var(--s3)', color: 'var(--wrong)' }}>
+                  <p className="t-meta" role="alert" style={{ marginTop: 'var(--s3)', color: 'var(--wrong)' }}>
                     {error}
                   </p>
                 ) : null}

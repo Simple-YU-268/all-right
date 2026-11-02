@@ -1,9 +1,10 @@
 /* 图片题端到端：导入题库包 → 看图 → 放大 → 答 → 备份 → 恢复
    跑法：npm run verify:image-questions（需要 dev server 跑在 5173） */
 import assert from 'node:assert/strict'
-import { readFileSync, statSync } from 'node:fs'
+import { readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { unzipSync, zipSync, strToU8 } from 'fflate'
 import { chromium } from 'playwright-core'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -18,6 +19,49 @@ page.on('pageerror', (error) => errors.push(String(error)))
 page.on('dialog', (dialog) => void dialog.accept())
 
 const rail = (label) => page.locator('.rail__item').filter({ hasText: label }).first()
+
+/**
+ * 造一个「文件头像 PNG、内容已经坏了」的包：
+ * 文件头骗得过类型嗅探，但浏览器解不开——这种图得在导入时就被挡下。
+ */
+function buildBrokenPack() {
+  const entries = unzipSync(new Uint8Array(readFileSync(PACK)))
+  const assetName = Object.keys(entries).find((name) => name.startsWith('assets/'))
+  const original = entries[assetName]
+  const broken = new Uint8Array(original)
+  /* 越过签名与 IHDR，把 IDAT 里的数据搅乱 */
+  broken[40] ^= 0xff
+  broken[41] ^= 0xff
+  const id = 'b'.repeat(64)
+  const manifest = {
+    schemaVersion: 2,
+    kind: 'bank',
+    name: '坏图题库',
+    assets: { [id]: { file: `assets/${id}`, mime: 'image/png', bytes: broken.length } },
+    questions: [{
+      id: 'broken',
+      type: 'single',
+      category: '坏图章',
+      stem: '这张图坏了',
+      stemBlocks: [
+        { type: 'text', text: '这张图坏了' },
+        { type: 'image', assetId: id, alt: '一张解不开的图' },
+      ],
+      options: [{ key: 'A', text: '看图' }],
+      answer: ['A'],
+      explanation: '',
+      difficulty: 1,
+      tags: [],
+    }],
+  }
+  const bytes = zipSync({
+    'bank.json': strToU8(JSON.stringify(manifest)),
+    [`assets/${id}`]: broken,
+  })
+  const path = join(ROOT, 'release', 'verify-broken-image.allright')
+  writeFileSync(path, bytes)
+  return path
+}
 
 try {
   await page.goto(process.env.ALLRIGHT_TEST_URL ?? 'http://127.0.0.1:5173/', { waitUntil: 'networkidle' })
@@ -160,8 +204,22 @@ try {
   await page.waitForSelector('.media__img', { timeout: 8000 })
   assert.equal(await page.locator('.media--missing').count(), 0, '恢复后图片都能读了')
 
+  /* 9. 坏图在导入时就被挡下，不会混进题库 */
+  await rail('题库').click()
+  await page.waitForTimeout(300)
+  const brokenPack = buildBrokenPack()
+  await page.locator('.dropzone input[type=file]').setInputFiles(brokenPack)
+  await page.waitForSelector('.preview', { timeout: 8000 })
+  await page.getByRole('button', { name: /^导入 \d+ 题$/ }).click()
+  await page.getByRole('alert').filter({ hasText: '解不开' }).waitFor({ timeout: 8000 })
+  assert.equal(
+    await page.locator('.bankrow').filter({ hasText: '坏图题库' }).count(),
+    0,
+    '坏图没能进题库',
+  )
+
   assert.deepEqual(errors, [])
-  console.log('PASS  图片题：题库包导入、题干与选项配图、放大预览、答题记录、图片选项不误选、完整备份与恢复、缺图拦截')
+  console.log('PASS  图片题：题库包导入、题干与选项配图、放大预览、答题记录、图片选项不误选、完整备份与恢复、缺图拦截、坏图拒收')
 } finally {
   await browser.close()
 }

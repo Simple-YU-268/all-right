@@ -10,6 +10,7 @@ globalThis.window = { __TAURI_INTERNALS__: undefined, location: { protocol: 'htt
 
 const { readZip, writeZip, isSafeEntryPath } = await loadAppModule('src/domain/zip.ts')
 const { readPack, looksLikePack } = await loadAppModule('src/domain/pack.ts')
+const { readImageSize } = await loadAppModule('src/domain/imageInfo.ts')
 
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
@@ -149,6 +150,44 @@ check('清单指向的图片不存在时被挡下', () => {
     })),
   })
   rejects(() => readPack(missing), /找不到/, '图片缺失')
+})
+
+/* ---- 图片尺寸：得在解码之前就知道 ---- */
+
+check('PNG 尺寸从文件头读得出来', () => {
+  const png = new Uint8Array(24)
+  png.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0)
+  png.set([0x00, 0x00, 0x00, 0x0d], 8)
+  png.set([0x49, 0x48, 0x44, 0x52], 12)
+  const view = new DataView(png.buffer)
+  view.setUint32(16, 520)
+  view.setUint32(20, 240)
+  assert.deepEqual(readImageSize(png), { width: 520, height: 240 })
+})
+
+check('JPEG 尺寸从 SOF 段读得出来', () => {
+  const jpeg = new Uint8Array(20)
+  jpeg.set([0xff, 0xd8], 0)
+  jpeg.set([0xff, 0xc0], 2)
+  jpeg.set([0x00, 0x11], 4)
+  jpeg.set([0x08], 6)
+  jpeg.set([0x01, 0x2c], 7)
+  jpeg.set([0x02, 0x08], 9)
+  assert.deepEqual(readImageSize(jpeg), { width: 520, height: 300 })
+})
+
+check('WebP 尺寸从容器读得出来', () => {
+  const webp = new Uint8Array(30)
+  webp.set([0x52, 0x49, 0x46, 0x46], 0)
+  webp.set([0x57, 0x45, 0x42, 0x50], 8)
+  webp.set([0x56, 0x50, 0x38, 0x58], 12)
+  webp.set([0x07, 0x02, 0x00], 20)
+  webp.set([0xef, 0x00, 0x00], 23)
+  assert.deepEqual(readImageSize(webp), { width: 520, height: 240 })
+})
+
+check('不是图片的文件读不出尺寸', () => {
+  assert.equal(readImageSize(new TextEncoder().encode('not an image at all')), null)
 })
 
 console.log(`PASS  题库包安全边界：${checks.length} 项`)

@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { IS_TAURI } from './shell'
 import { sha256Hex } from './sha256'
 import { questionAssetIds } from './content'
+import { readImageSize } from './imageInfo'
 import type { AssetMeta, Question, Workspace } from './types'
 
 /** 单张图片的上限。超过就当导入失败，别把内存吃穿。 */
@@ -10,6 +11,8 @@ export const MAX_ASSET_BYTES = 8 * 1024 * 1024
 export const MAX_TOTAL_ASSET_BYTES = 64 * 1024 * 1024
 /** 一个工作区里图片张数上限。 */
 export const MAX_ASSET_COUNT = 2000
+/** 解开后的像素总数上限。字节数小不代表展开后小，别让一张图撑爆内存。 */
+export const MAX_ASSET_PIXELS = 40_000_000
 
 const MIME_ALIASES: Record<string, string> = {
   'image/jpg': 'image/jpeg',
@@ -41,6 +44,23 @@ export function sniffImageMime(bytes: Uint8Array): string | null {
 }
 
 export const SUPPORTED_IMAGE_MIMES = ['image/png', 'image/jpeg', 'image/webp']
+
+/**
+ * 图片要真能解开：只看文件头是不够的，坏图照样有 PNG 头。
+ * 解不开的直接当导入失败，别等练到那题才发现图是空的。
+ */
+async function assertDecodable(bytes: Uint8Array, mime: string): Promise<void> {
+  if (typeof createImageBitmap !== 'function') return
+  const copy = new Uint8Array(bytes.byteLength)
+  copy.set(bytes)
+  let bitmap: ImageBitmap
+  try {
+    bitmap = await createImageBitmap(new Blob([copy.buffer], { type: mime }))
+  } catch {
+    throw new Error('这张图解不开，文件可能损坏了。')
+  }
+  bitmap.close()
+}
 
 export interface AssetStore {
   put(id: string, bytes: Uint8Array, mime: string): Promise<void>
@@ -192,6 +212,12 @@ export async function saveAsset(bytes: Uint8Array, declaredMime?: string): Promi
   if (bytes.length > MAX_ASSET_BYTES) {
     throw new Error(`单张图片不能超过 ${Math.round(MAX_ASSET_BYTES / 1024 / 1024)} MB。`)
   }
+  /* 先看尺寸再解码：像素上限要在展开之前拦，否则内存已经吃掉了。 */
+  const size = readImageSize(bytes)
+  if (size && size.width * size.height > MAX_ASSET_PIXELS) {
+    throw new Error(`图片尺寸太大（${size.width}×${size.height}），展开后超过 ${Math.round(MAX_ASSET_PIXELS / 1_000_000)} 百万像素。`)
+  }
+  await assertDecodable(bytes, sniffed)
   const id = sha256Hex(bytes)
   await assetStore.put(id, bytes, sniffed)
   return { id, mime: sniffed, bytes: bytes.length }
