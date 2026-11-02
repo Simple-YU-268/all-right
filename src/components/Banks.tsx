@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { ArrowRight, Bot, Download, FileJson, Trash2, Upload } from 'lucide-react'
+import { ArrowRight, Robot as Bot, Download, FileCode as FileJson, Delete as Trash2, Upload } from '@icon-park/react'
 import { useApp } from '../domain/store'
 import { readBankFile, type ParsedBank } from '../domain/parseBank'
 import { computeDashboard, formatPercent } from '../domain/stats'
@@ -8,6 +8,7 @@ import { AI_PROMPT, TEMPLATE } from '../domain/bankTemplate'
 import type { Bank } from '../domain/types'
 import type { Route } from '../App'
 import { CopyButton, EmptyState } from './bits'
+import { confirmAction } from '../domain/shell'
 
 export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const { workspace, activeBank, addBank, removeBank, setActiveBank } = useApp()
@@ -281,8 +282,8 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                           <button
                             type="button"
                             className="btn btn--sm btn--danger"
-                            onClick={() => {
-                              if (window.confirm(`删除题库「${bank.name}」？该题库的练习记录也会一并删除。`)) {
+                            onClick={async () => {
+                              if (await confirmAction(`删除题库「${bank.name}」？该题库的练习记录也会一并删除。`)) {
                                 removeBank(bank.id)
                               }
                             }}

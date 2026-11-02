@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Check, Clock, RefreshCw, X } from 'lucide-react'
+import { Check, Time as Clock, Refresh as RefreshCw, CloseSmall as X } from '@icon-park/react'
 import { useApp } from '../domain/store'
 import { collectWrongBook, formatPercent } from '../domain/stats'
 import { buildSession, newId } from '../domain/session'

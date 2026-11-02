@@ -4,6 +4,8 @@ dist/
 release/
 build/icon.png
 tsconfig.tsbuildinfo
+src-tauri/target/
+src-tauri/gen/schemas/
 
 # 本地日志
 *.log

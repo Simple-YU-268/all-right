@@ -1,9 +1,10 @@
-import { ArrowRight, Download, FileJson } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { ArrowRight, Download, FileCode as FileJson, Upload } from '@icon-park/react'
 import { useApp } from '../domain/store'
-import { downloadJson } from '../domain/storage'
+import { downloadJson, parseWorkspace } from '../domain/storage'
 import { FIELD_ALIASES, TEMPLATE, TEMPLATE_PRETTY } from '../domain/bankTemplate'
 import { useMotionPref, type MotionPref } from '../domain/motion'
-import { DATA_PLACE, DATA_RESET, DATA_STORE } from '../domain/shell'
+import { confirmAction, DATA_PLACE, DATA_RESET, DATA_STORE, IS_TAURI } from '../domain/shell'
 import type { Workspace } from '../domain/types'
 import type { Route } from '../App'
 import { CopyButton, Segmented } from './bits'
@@ -16,8 +17,21 @@ const MOTION_OPTIONS: { value: MotionPref; label: string }[] = [
 export function Settings({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const { workspace, replaceWorkspace } = useApp()
   const [motion, setMotion] = useMotionPref()
+  const backupInput = useRef<HTMLInputElement>(null)
+  const [backupStatus, setBackupStatus] = useState<string | null>(null)
 
-  const clearAll = () => {
+  const restoreBackup = async (file: File) => {
+    try {
+      const backup = parseWorkspace(await file.text())
+      if (!await confirmAction(`恢复备份中的 ${backup.banks.length} 个题库及练习记录？当前本机数据将被替换，请先导出备份。`)) return
+      replaceWorkspace(backup)
+      setBackupStatus(`已恢复 ${backup.banks.length} 个题库及练习记录。`)
+    } catch (error) {
+      setBackupStatus(`恢复失败：${String(error)}`)
+    }
+  }
+
+  const clearAll = async () => {
     const empty: Workspace = {
       version: 1,
       banks: [],
@@ -26,7 +40,7 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
       stats: {},
       sessions: [],
     }
-    if (!window.confirm('清空这台电脑上的题库、练习记录和错题本？此操作不可撤销。')) return
+    if (!await confirmAction('清空这台电脑上的题库、练习记录和错题本？此操作不可撤销。')) return
     replaceWorkspace(empty)
   }
 
@@ -108,8 +122,8 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
               </header>
               <div className="panel__body">
                 <p className="t-meta">
-                  题库、练习记录和错题本都写在{DATA_STORE}里，键名{' '}
-                  <code className="t-data">allright.workspace.v1</code>。不会上传，也不同步到别的设备。
+                  题库、练习记录和错题本都写在{DATA_STORE}里，{IS_TAURI ? '文件名' : '键名'}{' '}
+                  <code className="t-data">{IS_TAURI ? 'workspace.json' : 'allright.workspace.v1'}</code>。不会上传，也不同步到别的设备。
                   换机器或{DATA_RESET}前，先导一份备份。
                 </p>
                 <div className="settings__actions">
@@ -121,10 +135,27 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
                     <Download size={13} strokeWidth={2} />
                     导出备份
                   </button>
+                  <input
+                    ref={backupInput}
+                    type="file"
+                    accept=".json,application/json"
+                    hidden
+                    aria-label="选择工作区备份"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0]
+                      if (file) void restoreBackup(file)
+                      event.target.value = ''
+                    }}
+                  />
+                  <button type="button" className="btn btn--sm" onClick={() => backupInput.current?.click()}>
+                    <Upload size={13} strokeWidth={2} />
+                    恢复备份
+                  </button>
                   <button type="button" className="btn btn--sm btn--danger" onClick={clearAll}>
                     清空本机数据
                   </button>
                 </div>
+                {backupStatus ? <p className="t-meta settings__note" role="status">{backupStatus}</p> : null}
               </div>
             </section>
 

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Check, Copy } from 'lucide-react'
+import { Check, Copy } from '@icon-park/react'
 import { MASTERY_LABELS, type Mastery } from '../domain/types'
 
 /** 剪贴板：优先用 Clipboard API，不可用时退回选区复制。 */

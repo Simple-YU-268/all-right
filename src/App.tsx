@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
 import {
-  BookMarked,
-  ChartNoAxesColumn,
-  Library,
-  PenLine,
-  Settings as SettingsIcon,
-} from 'lucide-react'
+  Bookmark as BookMarked,
+  ChartHistogram as ChartNoAxesColumn,
+  Book as Library,
+  Edit as PenLine,
+  Setting as SettingsIcon,
+} from '@icon-park/react'
 import { useApp } from './domain/store'
 import { computeDashboard } from './domain/stats'
 import { IS_DESKTOP } from './domain/shell'

@@ -55,6 +55,18 @@ button {
   cursor: pointer;
 }
 
+.i-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.i-icon svg {
+  display: block;
+}
+
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;

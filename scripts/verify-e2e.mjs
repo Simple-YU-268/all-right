@@ -21,7 +21,7 @@ const page = await ctx.newPage()
 const errors = []
 page.on('pageerror', (e) => errors.push(String(e)))
 
-await page.goto('http://localhost:5173/', { waitUntil: 'networkidle' })
+await page.goto(process.env.ALLRIGHT_TEST_URL ?? 'http://127.0.0.1:5173/', { waitUntil: 'networkidle' })
 await page.waitForTimeout(700)
 
 const rail = (label) => page.locator('.rail__item').filter({ hasText: label }).first()

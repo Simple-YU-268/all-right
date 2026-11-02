@@ -8,12 +8,11 @@ export default defineConfig(({ command }) => ({
      开发服务器保持 "/"，免得本地热更新路径跟着变形。 */
   base: command === 'build' ? './' : '/',
   server: {
+    host: '127.0.0.1',
     port: 5173,
-    strictPort: false,
-    /* 别去监听 electron-builder 的产物目录：打包时它正往里写 exe，
-       Windows 上文件被占着，监听器一碰就 EBUSY，把开发服务器带崩。 */
+    strictPort: true,
     watch: {
-      ignored: ['**/release/**', '**/build/icon.png'],
+      ignored: ['**/release/**', '**/build/icon.png', '**/src-tauri/**'],
     },
   },
 }))

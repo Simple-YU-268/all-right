@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, RefreshCw, X } from 'lucide-react'
+import { ArrowRight, Refresh as RefreshCw, CloseSmall as X } from '@icon-park/react'
 import { useApp } from '../domain/store'
 import { collectWrongBook, computeDashboard, dayLabel, formatDuration, formatPercent } from '../domain/stats'
 import { buildSession, newId } from '../domain/session'

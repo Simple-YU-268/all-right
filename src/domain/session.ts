@@ -32,9 +32,9 @@ export function buildSession(
   if (plan.mode === 'random') {
     picked = shuffle(pool).slice(0, plan.count)
   } else if (plan.mode === 'category') {
-    picked = pool
+    picked = pool.filter((question) => question.category === plan.category).slice(0, plan.count)
   } else {
-    picked = pool
+    picked = pool.slice(0, plan.count)
   }
   return {
     id: sessionId,

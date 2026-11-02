@@ -1,0 +1,20 @@
+[package]
+name = "all-right"
+version = "0.2.0"
+description = "ALL RIGHT 全对 · 电子刷题台"
+edition = "2021"
+
+[lib]
+name = "all_right_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-window-state = "2"
+serde_json = "1"
+

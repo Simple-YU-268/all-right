@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, Check, ChevronLeft, CircleHelp, Clock, X } from 'lucide-react'
+import { ArrowRight, Check, Left as ChevronLeft, Help as CircleHelp, Time as Clock, CloseSmall as X, BookOpen } from '@icon-park/react'
 import { useApp } from '../domain/store'
 import { collectWrongBook, formatDuration, formatPercent } from '../domain/stats'
 import { buildSession, isAnswerCorrect, newId } from '../domain/session'
@@ -17,7 +17,7 @@ const COUNTS = [
 
 const MODE_LABEL: Record<SessionMode, string> = {
   random: '随机练习',
-  category: '分类练习',
+  category: '章节练习',
   wrong: '错题重刷',
 }
 
@@ -408,7 +408,7 @@ function Summary({ summary, onNavigate }: { summary: PracticeSummary; onNavigate
 
 const MODES = [
   { value: 'random' as SessionMode, label: '随机抽题' },
-  { value: 'category' as SessionMode, label: '按分类' },
+  { value: 'category' as SessionMode, label: '按章节' },
   { value: 'wrong' as SessionMode, label: '错题重刷' },
 ]
 
@@ -416,11 +416,19 @@ function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const { activeBank, workspace, startSession } = useApp()
   const [mode, setMode] = useState<SessionMode>('random')
   const [count, setCount] = useState(20)
-  const [category, setCategory] = useState('')
 
   const categories = useMemo(
-    () => (activeBank ? [...new Set(activeBank.questions.map((q) => q.category))] : []),
-    [activeBank],
+    () => {
+      const chapters = new Map<string, { name: string; total: number; practiced: number }>()
+      for (const question of activeBank?.questions ?? []) {
+        const chapter = chapters.get(question.category) ?? { name: question.category, total: 0, practiced: 0 }
+        chapter.total += 1
+        if (workspace.stats[question.id]?.attempts) chapter.practiced += 1
+        chapters.set(question.category, chapter)
+      }
+      return [...chapters.values()]
+    },
+    [activeBank, workspace.stats],
   )
   const wrongPool = useMemo(
     () => (activeBank ? collectWrongBook(activeBank, workspace) : []),
@@ -453,25 +461,26 @@ function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const pool =
     mode === 'wrong'
       ? wrongPool.map((entry) => entry.question)
-      : mode === 'category'
-        ? activeBank.questions.filter((q) => q.category === category)
-        : activeBank.questions
+      : activeBank.questions
 
   const size = count === 0 ? pool.length : Math.min(count, pool.length)
 
-  const begin = () => {
-    if (!pool.length) return
+  const begin = (category: string | null = null) => {
+    const selectedPool = mode === 'category'
+      ? activeBank.questions.filter((question) => question.category === category)
+      : pool
+    if (!selectedPool.length) return
     const session = buildSession(
       activeBank,
-      { mode, category: mode === 'category' ? category : null, count: size },
-      pool,
+      { mode, category: mode === 'category' ? category : null, count: count === 0 ? selectedPool.length : count },
+      selectedPool,
       newId('s'),
     )
     if (!session.questionIds.length) return
     startSession(session)
   }
 
-  const canStart = pool.length > 0 && (mode !== 'category' || !!category)
+  const canStart = pool.length > 0
 
   return (
     <>
@@ -492,44 +501,51 @@ function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
                   <Segmented options={MODES} value={mode} onChange={setMode} label="练习方式" />
                 </div>
 
-                {mode === 'category' ? (
-                  <div className="field" style={{ marginTop: 'var(--s4)' }}>
-                    <label className="field__label" htmlFor="category">
-                      选择分类
-                    </label>
-                    <select
-                      id="category"
-                      className="select"
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                    >
-                      <option value="">请选择…</option>
-                      {categories.map((name) => (
-                        <option key={name} value={name}>
-                          {name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : null}
-
                 <div className="field" style={{ marginTop: 'var(--s4)' }}>
                   <span className="field__label">题量</span>
                   <Segmented options={COUNTS} value={count} onChange={setCount} label="题量" />
                 </div>
 
+                {mode === 'category' ? (
+                  <section className="chapters" aria-label="章节入口">
+                    <p className="field__label">选择章节，直接开始</p>
+                    <div className="chapters__list">
+                      {categories.map(({ name, total, practiced }, index) => {
+                        const chapterSize = count === 0 ? total : Math.min(count, total)
+                        return (
+                          <button
+                            key={name}
+                            type="button"
+                            className="chapter-entry"
+                            onClick={() => begin(name)}
+                            aria-label={`${name}，共 ${total} 题，开始练习 ${chapterSize} 题`}
+                          >
+                            <span className="chapter-entry__number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+                            <span className="chapter-entry__body">
+                              <span className="chapter-entry__name"><BookOpen size={16} aria-hidden="true" />{name}</span>
+                              <span className="chapter-entry__meta">共 {total} 题 · 已练 {practiced} 题</span>
+                            </span>
+                            <span className="chapter-entry__action">练 {chapterSize} 题<ArrowRight size={16} aria-hidden="true" /></span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {!categories.length ? <p className="t-meta">当前题库没有可练习的章节，请先导入题目。</p> : null}
+                  </section>
+                ) : null}
+
                 <p className="t-meta" style={{ marginTop: 'var(--s4)', lineHeight: 1.7 }}>
                   {mode === 'random'
                     ? '从整个题库随机抽题，不重复已练过的题优先。想练覆盖面时用这个。'
                     : mode === 'category'
-                      ? '只练一个分类，适合考前突击某一块知识点。'
+                      ? '点击章节入口即可按所选题量开始，题目按题库顺序排列。'
                       : `只练错题本里的 ${wrongPool.length} 道题。答对一次就移出错题本。`}
                 </p>
 
                 <div className="practice__actions">
-                  <button type="button" className="btn btn--primary btn--lg" onClick={begin} disabled={!canStart}>
+                  {mode !== 'category' ? <button type="button" className="btn btn--primary btn--lg" onClick={() => begin()} disabled={!canStart}>
                     开始练习（{size} 题）
-                  </button>
+                  </button> : null}
                   <button type="button" className="btn btn--ghost" onClick={() => onNavigate('dashboard')}>
                     返回看板
                   </button>

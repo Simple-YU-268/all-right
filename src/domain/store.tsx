@@ -4,10 +4,11 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useState,
   type ReactNode,
 } from 'react'
 import { type AttemptRecord, type Bank, type SessionMode, type Workspace } from './types'
-import { loadWorkspace, saveWorkspace } from './storage'
+import { saveWorkspace } from './storage'
 
 export interface ActiveSession {
   id: string
@@ -170,15 +171,20 @@ export interface AppApi {
 
 const AppContext = createContext<AppApi | null>(null)
 
-export function AppProvider({ children }: { children: ReactNode }) {
-  // 初始状态直接读本地存储：否则挂载后的保存副作用会先把旧数据覆盖成空。
+export function AppProvider({ children, initialWorkspace }: { children: ReactNode; initialWorkspace: Workspace }) {
+  const [storageError, setStorageError] = useState<string | null>(null)
   const [state, dispatch] = useReducer(reducer, undefined, () => ({
-    workspace: loadWorkspace(),
+    workspace: initialWorkspace,
     session: null,
   }))
 
   useEffect(() => {
-    saveWorkspace(state.workspace)
+    let active = true
+    void saveWorkspace(state.workspace).then(
+      () => { if (active) setStorageError(null) },
+      (error: unknown) => { if (active) setStorageError(`保存失败，请先导出备份：${String(error)}`) },
+    )
+    return () => { active = false }
   }, [state.workspace])
 
   const activeBank = useMemo(
@@ -206,7 +212,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [state.workspace, state.session, activeBank],
   )
 
-  return <AppContext.Provider value={api}>{children}</AppContext.Provider>
+  return <AppContext.Provider value={api}>
+    {storageError ? <div className="storage-error" role="alert">{storageError}</div> : null}
+    {children}
+  </AppContext.Provider>
 }
 
 export function useApp(): AppApi {
