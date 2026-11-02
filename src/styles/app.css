@@ -1310,6 +1310,71 @@
   gap: var(--s1);
 }
 
+.chapter-manager {
+  grid-column: 1 / -1;
+  min-width: 0;
+  display: grid;
+  gap: var(--s3);
+}
+
+.chapter-manager__head,
+.chapter-row__actions,
+.chapter-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.chapter-manager .chapter-distribution {
+  margin: 0;
+}
+
+.chapter-manager .chapter-row {
+  flex-wrap: wrap;
+  align-items: center;
+  padding-block: var(--s2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.chapter-row__name {
+  flex: 1 1 180px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.chapter-editor {
+  position: relative;
+  display: grid;
+  gap: var(--s3);
+  min-width: 0;
+  padding: var(--s4);
+  border: 1px solid var(--rule);
+  background: var(--paper);
+}
+
+.chapter-editor__json {
+  min-height: 280px;
+  max-height: 600px;
+  tab-size: 2;
+}
+
+.chapter-editor__modes,
+.chapter-editor__sources {
+  display: grid;
+  gap: var(--s2);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  overflow-wrap: anywhere;
+}
+
+.chapter-editor__error {
+  font-size: var(--t-sm);
+  color: var(--wrong);
+  overflow-wrap: anywhere;
+}
+
 /* ---- 题库格式说明 ---- */
 
 .schema {

@@ -71,7 +71,7 @@ ok(bankNames.includes(tpl.name), `题库列表出现「${tpl.name}」（实际 $
 const bankRow = page.locator('.bankrow').filter({ hasText: tpl.name })
 await bankRow.locator('.chapter-distribution summary').click()
 ok((await bankRow.locator('.chapter-distribution li').count()) === 2, '题库管理可展开两个章节')
-ok((await page.locator('.chapter-guide').innerText()).includes('新题库'), '题库管理说明编辑后重新导入的行为')
+ok((await page.locator('.chapter-guide').innerText()).includes('直接更新目标题库'), '题库管理说明单章操作直接更新目标题库')
 await page.setViewportSize({ width: 390, height: 844 })
 ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), '窄屏题库章节列表和说明无横向溢出')
 await page.setViewportSize({ width: 1440, height: 900 })

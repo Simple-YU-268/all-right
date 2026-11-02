@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { type AttemptRecord, type Bank, type SessionMode, type Workspace } from './types'
 import { saveWorkspace } from './storage'
+import { saveChapter, deleteChapter, importChapters, type ChapterChange, type ChapterImport } from './chapters'
 
 export interface ActiveSession {
   id: string
@@ -31,6 +32,9 @@ type Action =
   | { type: 'addBank'; bank: Bank }
   | { type: 'removeBank'; bankId: string }
   | { type: 'renameBank'; bankId: string; name: string }
+  | { type: 'saveChapter'; change: ChapterChange }
+  | { type: 'importChapters'; change: ChapterImport }
+  | { type: 'deleteChapter'; bankId: string; category: string }
   | { type: 'setActiveBank'; bankId: string }
   | { type: 'recordAttempt'; attempt: AttemptRecord }
   | { type: 'removeFromWrongBook'; questionId: string }
@@ -42,6 +46,23 @@ type Action =
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
+    case 'saveChapter':
+    case 'importChapters':
+    case 'deleteChapter': {
+      const result = action.type === 'saveChapter'
+        ? saveChapter(state.workspace, action.change)
+        : action.type === 'importChapters'
+          ? importChapters(state.workspace, action.change)
+          : deleteChapter(state.workspace, action.bankId, action.category)
+      let session = state.session
+      if (session?.bankId === result.bankId) {
+        if (session.questionIds.some((questionId) => result.invalidatedIds.has(questionId))) session = null
+        else if (session.category === result.previousCategory && result.previousCategory !== null) {
+          session = { ...session, category: result.category }
+        }
+      }
+      return { workspace: result.workspace, session }
+    }
     case 'addBank':
       return {
         ...state,
@@ -159,6 +180,9 @@ export interface AppApi {
   addBank: (bank: Bank) => void
   removeBank: (bankId: string) => void
   renameBank: (bankId: string, name: string) => void
+  saveChapter: (change: ChapterChange) => void
+  importChapters: (change: ChapterImport) => void
+  deleteChapter: (bankId: string, category: string) => void
   setActiveBank: (bankId: string) => void
   recordAttempt: (attempt: AttemptRecord) => void
   removeFromWrongBook: (questionId: string) => void
@@ -200,6 +224,18 @@ export function AppProvider({ children, initialWorkspace }: { children: ReactNod
       addBank: (bank) => dispatch({ type: 'addBank', bank }),
       removeBank: (bankId) => dispatch({ type: 'removeBank', bankId }),
       renameBank: (bankId, name) => dispatch({ type: 'renameBank', bankId, name }),
+      saveChapter: (change) => {
+        saveChapter(state.workspace, change)
+        dispatch({ type: 'saveChapter', change })
+      },
+      importChapters: (change) => {
+        importChapters(state.workspace, change)
+        dispatch({ type: 'importChapters', change })
+      },
+      deleteChapter: (bankId, category) => {
+        deleteChapter(state.workspace, bankId, category)
+        dispatch({ type: 'deleteChapter', bankId, category })
+      },
       setActiveBank: (bankId) => dispatch({ type: 'setActiveBank', bankId }),
       recordAttempt: (attempt) => dispatch({ type: 'recordAttempt', attempt }),
       removeFromWrongBook: (questionId) => dispatch({ type: 'removeFromWrongBook', questionId }),

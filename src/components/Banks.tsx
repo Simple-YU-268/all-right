@@ -10,6 +10,7 @@ import type { Route } from '../App'
 import { CopyButton, EmptyState } from './bits'
 import { confirmAction } from '../domain/shell'
 import { ChapterGuide } from './ChapterGuide'
+import { ChapterManager } from './ChapterManager'
 
 export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const { workspace, activeBank, addBank, removeBank, setActiveBank } = useApp()
@@ -263,7 +264,6 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                             {new Set(bank.questions.map((q) => q.category)).size} 个章节 · 导入于{' '}
                             {new Date(bank.importedAt).toLocaleDateString('zh-CN')}
                           </p>
-                          <ChapterDistribution questions={bank.questions} />
                         </div>
                         <span className="bankrow__num">{bankStats.attemptedQuestions} 已练</span>
                         <span className="bankrow__num">{formatPercent(bankStats.overallAccuracy)}</span>
@@ -297,6 +297,7 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                             <Trash2 size={13} strokeWidth={2} />
                           </button>
                         </span>
+                        <ChapterManager bank={bank} />
                       </div>
                     )
                   })

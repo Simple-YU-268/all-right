@@ -59,6 +59,7 @@ try {
   await page.locator('.rail__item').nth(4).click()
   await page.locator('code').filter({ hasText: 'workspace.json' }).waitFor()
   assert.match(await page.locator('.chapter-guide').innerText(), /category/)
+  assert.match(await page.locator('.chapter-guide').innerText(), /默认全选/)
   const template = JSON.parse(await page.locator('pre.schema__code.t-data').first().innerText())
   assert.equal(template.questions.length, 3)
   assert.equal(new Set(template.questions.map((question) => question.category)).size, 2)
