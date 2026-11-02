@@ -9,7 +9,7 @@ import { TEMPLATE, FIELD_ALIASES } from '../src/domain/bankTemplate.ts'
 const requestedOutput = process.env.ALLRIGHT_OUTPUT_DIR || process.cwd()
 await mkdir(requestedOutput, { recursive: true })
 const outputDirectory = await realpath(requestedOutput)
-const server = new McpServer({ name: 'allright-mcp', version: '0.4.0' })
+const server = new McpServer({ name: 'allright-mcp', version: '0.4.1' })
 const inputSchema = { bank: z.unknown().describe('Source bank object or question array; never invent missing answers.') }
 const response = (data, isError = false) => ({
   content: [{ type: 'text', text: JSON.stringify(data, null, 2) }],

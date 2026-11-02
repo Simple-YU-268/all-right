@@ -2,6 +2,8 @@
 node_modules/
 dist/
 src-tauri/resources/*.exe
+src-tauri/resources/mcp-server.mjs
+src-tauri/resources/rust-source-supplement.zip
 release/
 build/icon.png
 tsconfig.tsbuildinfo

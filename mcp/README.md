@@ -2,13 +2,13 @@
 
 ## Built-in Windows service
 
-The Windows installer includes `resources/allright-mcp.exe` with its own runtime.
+The Windows installer includes the official Node.js runtime and `resources/mcp-server.mjs`.
 Open Settings > Agent / MCP and copy the configuration containing the installed path.
 The client starts the stdio process when needed; the app window need not stay open.
 Generated banks go to the app data directory's `mcp-output` folder, separate from workspace data.
-No Node.js installation is required for this executable.
+No separate Node.js installation is required.
 
-To build the installer from source, install Bun and run `npm run tauri:build`.
+To build the installer from source, run `npm run tauri:build` (downloads and verifies the pinned official runtime).
 `npm run build:mcp-native` builds just the Windows x64 service.
 
 Local stdio server for agents converting source material into importable text banks.

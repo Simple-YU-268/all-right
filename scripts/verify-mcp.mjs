@@ -9,7 +9,7 @@ const directory = await mkdtemp(path.join(tmpdir(), 'allright-mcp-test-'))
 const client = new Client({ name: 'allright-test', version: '1.0.0' })
 const transport = new StdioClientTransport({
   command: process.env.ALLRIGHT_MCP_EXE || process.execPath,
-  args: process.env.ALLRIGHT_MCP_EXE ? [] : [process.env.ALLRIGHT_MCP_ENTRY || path.resolve('mcp/launch.mjs')],
+  args: process.env.ALLRIGHT_MCP_EXE ? (process.env.ALLRIGHT_MCP_ENTRY ? [process.env.ALLRIGHT_MCP_ENTRY] : []) : [process.env.ALLRIGHT_MCP_ENTRY || path.resolve('mcp/launch.mjs')],
   env: { ...process.env, ALLRIGHT_OUTPUT_DIR: directory },
 })
 const call = async (name, args = {}) => {

@@ -1,6 +1,21 @@
-import { mkdirSync } from 'node:fs'
-import { spawnSync } from 'node:child_process'
-mkdirSync('src-tauri/resources', { recursive: true })
-const result = spawnSync('bun', ['build', 'mcp/server.mjs', '--compile', '--target=bun-windows-x64', '--outfile=src-tauri/resources/allright-mcp.exe'], { stdio: 'inherit', shell: process.platform === 'win32' })
-if (result.error) throw result.error
-if (result.status !== 0) process.exit(result.status || 1)
+import { build } from 'esbuild'
+import { readFile, writeFile, mkdir } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+const version = '24.20.0'
+const base = `https://nodejs.org/dist/v${version}`
+await mkdir('src-tauri/resources', { recursive: true })
+const sums = await (await fetch(`${base}/SHASUMS256.txt`)).text()
+const expected = sums.split('\n').find(line => line.trim().endsWith('win-x64/node.exe'))?.split(/\s+/)[0]
+if (!expected) throw new Error('Official Node checksum missing')
+let bytes
+try { bytes = await readFile('src-tauri/resources/node.exe') } catch {
+  bytes = Buffer.from(await (await fetch(`${base}/win-x64/node.exe`)).arrayBuffer())
+}
+if (createHash('sha256').update(bytes).digest('hex') !== expected) throw new Error('Node runtime checksum mismatch')
+await writeFile('src-tauri/resources/node.exe', bytes)
+const license = await fetch(`https://raw.githubusercontent.com/nodejs/node/v${version}/LICENSE`)
+if (!license.ok) throw new Error('Node license download failed')
+await writeFile('src-tauri/resources/NODE-LICENSE.txt', await license.text())
+await build({ entryPoints: ['mcp/server.mjs'], outfile: 'src-tauri/resources/mcp-server.mjs', bundle: true,
+  platform: 'node', format: 'esm', target: 'node24',
+  banner: { js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);" } })
