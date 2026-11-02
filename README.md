@@ -4,7 +4,20 @@
 
 一个纯前端的电子刷题工具：把 JSON 题库导入本地，按分类或随机抽题练习，答错的题自动收进错题本随时重刷，看板集中呈现练习进度、正确率与掌握分布。
 
+![看板](.impeccable/review/desktop-dashboard.png)
+
 界面设计遵循 [impeccable](https://github.com/pbakaus/impeccable) 的工作流，视觉方向为「蜡纸油印卷子」：靛蓝油墨印在冷灰纸面上，答错处留一道朱红批改。设计契约见 `.impeccable/surfaces/app.md`，设计系统见 `DESIGN.md`。
+
+## 下载
+
+Windows 桌面版见 [Releases](https://github.com/Simple-YU-268/all-right/releases)，有两个版本：
+
+| 文件 | 说明 |
+| --- | --- |
+| `ALLRIGHT-Setup-0.1.0.exe` | 安装版。可选安装目录，建桌面与开始菜单快捷方式，带卸载程序 |
+| `ALLRIGHT-Portable-0.1.0.exe` | 便携版。免安装，双击即用，数据存在 exe 旁边的 `data\` |
+
+桌面上就是上面那个网页版，功能完全一样，题库和练习记录只存在自己电脑上。也可以跳过下载，直接用网页版。
 
 ## 快速开始
 
