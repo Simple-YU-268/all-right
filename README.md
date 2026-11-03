@@ -23,10 +23,10 @@
 
 ## 🚀 快速开始
 
-当前版本 **v0.4.2**，支持 Windows x64。
+当前版本 **v0.5.0**，支持 Windows x64。
 
-- [下载安装包](https://github.com/Simple-YU-268/all-right/releases/download/v0.4.2/ALLRIGHT-Setup-0.4.2.exe)
-- [查看更新与校验文件](https://github.com/Simple-YU-268/all-right/releases/tag/v0.4.2)
+- [下载安装包](https://github.com/Simple-YU-268/all-right/releases/download/v0.5.0/ALLRIGHT-Setup-0.5.0.exe)
+- [查看更新与校验文件](https://github.com/Simple-YU-268/all-right/releases/tag/v0.5.0)
 
 安装后，在「题库」载入示例题库即可试用，也可以导入自己的文件。
 

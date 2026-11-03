@@ -1,4 +1,5 @@
 import { blocksToText, collectAssetIds, normalizeBlocks } from './content'
+import { duplicateIdIssues, dropBrokenQuestions, questionIssues } from './bankValidation'
 import type { Option, Question, QuestionType } from './types'
 
 export interface ParseIssue {
@@ -6,6 +7,8 @@ export interface ParseIssue {
   index: number
   field: string
   message: string
+  /** 结构性问题带具体代码，方便 MCP 与应用对上同一套错误。 */
+  code?: string
 }
 
 export interface ParsedBank {
@@ -25,6 +28,11 @@ export interface ParseOptions {
    * 没给就当成纯文本题库，任何图片引用都算缺资源。
    */
   assets?: Record<string, unknown>
+  /**
+   * 整库导入用 'bank'，题号重复要拦；章节编辑用 'chapter'，
+   * 章内题号重复交给章节保存时的规则，提示更具体。
+   */
+  scope?: 'bank' | 'chapter'
 }
 
 const STEM_KEYS = ['stem', 'question', 'title', '题干', '题目', '问题', 'content']
@@ -127,7 +135,7 @@ function normalizeAnswer(raw: unknown): string[] {
   if (typeof raw === 'boolean') return [raw ? '正确' : '错误']
   if (typeof raw === 'number') {
     // 1-based index into A/B/C/D…
-    return [String.fromCharCode(64 + raw)]
+    return Number.isInteger(raw) && raw >= 1 && raw <= 26 ? [String.fromCharCode(64 + raw)] : [String(raw)]
   }
   if (Array.isArray(raw)) {
     return raw.flatMap((entry) => normalizeAnswer(entry))
@@ -137,6 +145,7 @@ function normalizeAnswer(raw: unknown): string[] {
   if (/^(正确|对|true|是|yes|y|t)$/i.test(text)) return ['正确']
   if (/^(错误|错|false|否|no|n|f)$/i.test(text)) return ['错误']
   // "A", "AB", "A,C", "A C" → split into single letters
+  if (!/^[A-Za-z，,\s、|]+$/.test(text)) return [text]
   const letters = text
     .replace(/[，,\s、|]+/g, '')
     .split('')
@@ -315,7 +324,14 @@ export function parseBank(raw: unknown, fallbackName = '未命名题库', option
     sourceIndices.push(i)
   })
 
-  return { name: bankName, questions: valid, issues, warnings, valid, sourceIndices }
+  const scope = options.scope ?? 'bank'
+  const structural = [
+    ...questionIssues(valid, sourceIndices),
+    ...(scope === 'bank' ? duplicateIdIssues(valid, sourceIndices) : []),
+  ]
+  const kept = dropBrokenQuestions(valid, sourceIndices, structural)
+  issues.push(...kept.issues.map((issue) => ({ ...issue })))
+  return { name: bankName, questions: kept.questions, issues, warnings, valid: kept.questions, sourceIndices: kept.sourceIndices }
 }
 
 export function readBankFile(text: string, fallbackName: string, options: ParseOptions = {}): ParsedBank {

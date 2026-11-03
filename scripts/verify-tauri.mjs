@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { chromium } from 'playwright-core'
 
 const browser = await chromium.launch({
@@ -14,10 +16,22 @@ const workspace = {
     answer: ['A'], explanation: '', difficulty: 1, tags: [],
   }] }],
 }
+const mcpBank = {
+  name: 'Agent 试卷',
+  questions: [
+    {
+      id: 'mcp-1', type: 'single', category: '通信', stem: 'MCP 生成的题目',
+      options: [{ key: 'A', text: '选项一' }, { key: 'B', text: '选项二' }],
+      answer: ['A'], explanation: '', difficulty: 2, tags: [],
+    },
+    {
+      id: 'mcp-2', type: 'judge', category: '通信', stem: 'MCP 生成的判断题',
+      options: [], answer: ['正确'], explanation: '', difficulty: 1, tags: [],
+    },
+  ],
+}
 
-try {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 860 } })
-  await context.addInitScript((data) => {
+function installMock(data) {
     window.nativeCalls = []
     window.isTauri = true
     window.__TAURI_INTERNALS__ = {
@@ -25,10 +39,19 @@ try {
         window.nativeCalls.push({ command, args: ArrayBuffer.isView(args) ? Array.from(args) : args, options })
         if (command === 'check_mcp') return '连接正常，四个 MCP 工具可用'
         if (command === 'get_mcp_config') return { mcpServers: { allright: { command: 'C:\\ALLRIGHT\\resources\\node.exe', args: ['C:\\ALLRIGHT\\resources\\mcp-server.mjs'], env: { ALLRIGHT_OUTPUT_DIR: 'C:\\ALLRIGHT\\output' } } } }
+        if (command === 'list_mcp_outputs') {
+          return [
+            { name: '通信试卷.json', bytes: 2048, modifiedAt: Date.now() },
+          ]
+        }
+        if (command === 'read_mcp_output') {
+          if (!args.name.endsWith('.json') || args.name.includes('..')) throw new Error('文件名不合法')
+          return JSON.stringify(data.mcpBank)
+        }
         if (command === 'load_workspace') {
           await new Promise((resolve) => setTimeout(resolve, 100))
           if (localStorage.getItem('mock-load-failure')) throw new Error('模拟读取失败')
-          return localStorage.getItem('mock-workspace') ?? JSON.stringify(data)
+          return localStorage.getItem('mock-workspace') ?? JSON.stringify(data.workspace)
         }
         if (command === 'save_workspace') {
           if (localStorage.getItem('mock-save-failure')) throw new Error('模拟磁盘已满')
@@ -41,7 +64,11 @@ try {
         throw new Error(`未预期的 IPC：${command}`)
       },
     }
-  }, workspace)
+}
+
+try {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 860 } })
+  await context.addInitScript(installMock, { workspace, mcpBank })
   const page = await context.newPage()
   const errors = []
   page.on('pageerror', (error) => errors.push(String(error)))
@@ -62,6 +89,7 @@ try {
   assert.match(await page.locator('.content__inner').innerText(), /桌面接口测试题/)
   await navigate('设置')
   await page.getByRole('button', { name: '复制 MCP 配置', exact: true }).waitFor()
+  await page.getByText('查看连接配置', { exact: true }).click()
   assert.match(await page.locator('.settings').innerText(), /mcp-server\.mjs/)
   await page.getByRole('button', { name: '检测 MCP', exact: true }).click()
   await page.getByRole('status').filter({ hasText: '连接正常，四个 MCP 工具可用' }).waitFor()
@@ -92,7 +120,44 @@ try {
   await page.getByRole('alert').filter({ hasText: '读取本地数据失败' }).waitFor()
   assert.equal(await page.evaluate(() => window.nativeCalls.filter((call) => call.command === 'save_workspace').length), 0)
   assert.deepEqual(errors, [])
-  console.log('PASS  模拟 Tauri IPC：先加载再保存、练习持久化、原生导出及取消、旧版备份恢复、无效备份与读写失败保护')
+
+  /* MCP 产物列表、预览与导入，另开一个上下文，免得动到上面的题库断言。 */
+  const mcpContext = await browser.newContext({ viewport: { width: 1280, height: 860 } })
+  await mcpContext.addInitScript(installMock, { workspace, mcpBank })
+  const mcpPage = await mcpContext.newPage()
+  const mcpErrors = []
+  mcpPage.on('pageerror', (error) => mcpErrors.push(String(error)))
+  await mcpPage.goto(url)
+  await mcpPage.getByRole('navigation').getByRole('button').filter({ hasText: '设置' }).click()
+  await mcpPage.locator('.filerow__name').filter({ hasText: '通信试卷.json' }).waitFor()
+  assert.equal(await mcpPage.locator('.filerow').count(), 1)
+  await mcpPage.getByRole('button', { name: '查看', exact: true }).click()
+  await mcpPage.locator('.mcp__preview').waitFor()
+  assert.match(await mcpPage.locator('.mcp__preview').innerText(), /Agent 试卷/)
+  await mcpPage.locator('.mcp__outputs').scrollIntoViewIfNeeded()
+  await mcpPage.screenshot({ path: join(tmpdir(), 'allright-mcp-desktop.png') })
+  await mcpPage.setViewportSize({ width: 390, height: 844 })
+  assert.equal(await mcpPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true)
+  await mcpPage.locator('.mcp__outputs').scrollIntoViewIfNeeded()
+  await mcpPage.screenshot({ path: join(tmpdir(), 'allright-mcp-mobile.png') })
+  await mcpPage.setViewportSize({ width: 1280, height: 860 })
+  await mcpPage.getByRole('button', { name: '导入 2 题' }).click()
+  await mcpPage.locator('.rail__bank').filter({ hasText: 'Agent 试卷' }).waitFor()
+  await mcpPage.getByRole('status').filter({ hasText: '已导入题库「Agent 试卷」，共 2 题' }).waitFor()
+
+  /* JSON Schema 也能直接导出给 Agent 用。 */
+  await mcpPage.getByRole('button', { name: '下载 JSON Schema' }).click()
+  await mcpPage.waitForFunction(() => window.nativeCalls.some((call) => call.command === 'plugin:fs|write_text_file'))
+  const schema = await mcpPage.evaluate(() => {
+    const call = window.nativeCalls.filter((entry) => entry.command === 'plugin:fs|write_text_file').pop()
+    return JSON.parse(new TextDecoder().decode(new Uint8Array(call.args)))
+  })
+  assert.equal(schema.$schema, 'https://json-schema.org/draft/2020-12/schema')
+  assert.ok(schema.properties.questions)
+  assert.deepEqual(mcpErrors, [])
+  await mcpContext.close()
+
+  console.log('PASS  模拟 Tauri IPC：先加载再保存、练习持久化、原生导出及取消、旧版备份恢复、无效备份与读写失败保护、MCP 产物列表预览导入与 Schema 导出')
 } finally {
   await browser.close()
 }

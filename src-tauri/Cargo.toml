@@ -1,6 +1,6 @@
 [package]
 name = "all-right"
-version = "0.4.2"
+version = "0.5.0"
 description = "ALL RIGHT 全对 · 电子刷题台"
 edition = "2021"
 

@@ -1,14 +1,16 @@
 {
   "name": "all-right",
   "private": true,
-  "version": "0.4.2",
+  "version": "0.5.0",
   "type": "module",
   "description": "ALL RIGHT 全对 · 电子刷题台：导入 JSON 题库，按分类或随机抽题，错题自动收进错题本，看板追踪进度与正确率。",
   "author": "ALL RIGHT 全对",
   "scripts": {
     "notices": "node scripts/generate-notices.mjs && node scripts/generate-rust-notices.mjs",
+    "schema": "node scripts/generate-bank-schema.mjs",
     "mcp": "node mcp/launch.mjs",
     "verify:mcp": "node scripts/verify-mcp.mjs",
+    "verify:bank-validation": "node scripts/verify-bank-validation.mjs",
     "verify:release-resources": "node scripts/verify-release-resources.mjs",
     "verify:install": "node scripts/verify-install.mjs",
     "dev": "vite",
@@ -27,7 +29,7 @@
     "icon": "node scripts/make-icon.mjs",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "npm run notices && npm run build:mcp-native && tauri build",
+    "tauri:build": "npm run notices && npm run schema && npm run build:mcp-native && tauri build",
     "build:mcp-native": "node scripts/build-mcp-native.mjs",
     "tauri:icon": "npm run icon && tauri icon build/icon.png"
   },

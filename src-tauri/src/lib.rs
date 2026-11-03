@@ -179,6 +179,80 @@ fn get_mcp_config(app: AppHandle) -> Result<serde_json::Value, String> {
     }}}))
 }
 
+fn mcp_output_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    let directory = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| error.to_string())?
+        .join("mcp-output");
+    fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
+    Ok(directory)
+}
+
+/// 只认目录里的普通文件名：不许带路径分隔符，也不许往外跳。
+fn mcp_output_path_in(base: &std::path::Path, name: &str) -> Result<PathBuf, String> {
+    if name.is_empty()
+        || name.len() > 120
+        || name.contains('/')
+        || name.contains('\\')
+        || name.contains('\0')
+        || name.contains("..")
+    {
+        return Err("文件名不合法".into());
+    }
+    let path = base.join(name);
+    if path.parent() != Some(base) {
+        return Err("文件名不合法".into());
+    }
+    Ok(path)
+}
+
+fn mcp_output_path(app: &AppHandle, name: &str) -> Result<PathBuf, String> {
+    let base = mcp_output_dir(app)?;
+    mcp_output_path_in(&base, name)
+}
+
+#[tauri::command]
+fn list_mcp_outputs(app: AppHandle) -> Result<Vec<serde_json::Value>, String> {
+    let directory = mcp_output_dir(&app)?;
+    let mut files = Vec::new();
+    let entries = fs::read_dir(&directory).map_err(|error| error.to_string())?;
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().to_string();
+        if !name.to_lowercase().ends_with(".json") {
+            continue;
+        }
+        let meta = entry.metadata().map_err(|error| error.to_string())?;
+        if !meta.is_file() {
+            continue;
+        }
+        let modified = meta
+            .modified()
+            .ok()
+            .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|since| since.as_millis() as u64)
+            .unwrap_or(0);
+        files.push(serde_json::json!({
+            "name": name,
+            "bytes": meta.len(),
+            "modifiedAt": modified,
+        }));
+    }
+    files.sort_by(|a, b| {
+        b.get("modifiedAt")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0)
+            .cmp(&a.get("modifiedAt").and_then(|v| v.as_u64()).unwrap_or(0))
+    });
+    Ok(files)
+}
+
+#[tauri::command]
+fn read_mcp_output(app: AppHandle, name: String) -> Result<String, String> {
+    let path = mcp_output_path(&app, &name)?;
+    fs::read_to_string(&path).map_err(|_| "找不到这个文件".to_string())
+}
+
 #[tauri::command]
 async fn check_mcp(app: AppHandle) -> Result<String, String> {
     let directory = app.path().resource_dir().map_err(|e| e.to_string())?.join("resources");
@@ -213,8 +287,44 @@ pub fn run() {
             delete_assets,
             list_assets,
             get_mcp_config,
+            list_mcp_outputs,
+            read_mcp_output,
             check_mcp
         ])
         .run(tauri::generate_context!())
         .expect("无法启动 ALL RIGHT 全对");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mcp_output_path_stays_inside_the_output_directory() {
+        let base = std::path::Path::new("/tmp/mcp-output");
+        assert!(mcp_output_path_in(base, "通信试卷.json").is_ok());
+        assert!(mcp_output_path_in(base, "bank.json").is_ok());
+        for name in [
+            "",
+            "../x.json",
+            "..\\x.json",
+            "sub/x.json",
+            "sub\\x.json",
+            "a/../../b.json",
+            "..",
+        ] {
+            assert!(
+                mcp_output_path_in(base, name).is_err(),
+                "文件名不该被放行：{name}"
+            );
+        }
+    }
+
+    #[test]
+    fn asset_ids_must_be_content_hashes() {
+        assert!(is_asset_id(&"a".repeat(64)));
+        assert!(!is_asset_id(&"A".repeat(64)));
+        assert!(!is_asset_id("short"));
+        assert!(!is_asset_id(&format!("{}/x", "a".repeat(63))));
+    }
 }

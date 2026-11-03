@@ -267,10 +267,45 @@ npm run tauri:build   # 构建 React 并生成 Windows NSIS 安装包
 
 恢复备份会替换当前工作区，请先导出当前备份。清空本机数据前也应先备份。
 
+## Agent 生成题库
+
+桌面版在「设置 → Agent / MCP」复制连接配置。Agent 先调用 `get_bank_spec` 获取模板和 JSON Schema，再调用 `normalize_bank` 整理字段、`validate_bank` 检查，最后用 `build_bank_file` 保存。
+
+整理结果会列出原始题数、可用题数、未通过题数，以及补编号、规范答案等改动。缺少答案的题需要回看原卷，不应让 Agent 猜答案。
+
+每道提交题目都在 `items` 报告中保留源序号，状态为 `accepted`（通过）、`needs_review`（需确认）或 `unsupported`（不支持）。未通过的题保留原始对象，不能静默丢弃。生成接口遇到错误会拒绝写文件，标准输出还需通过 JSON Schema 检查。
+
+从原卷独立核对题数后，可传入 `expectedSourceCount`；与提交题数不符时禁止生成。未传时 `sourceCoverage` 为 `unverified`。题数一致只代表数量核对通过，不代表提取内容完整或答案正确。当前 MCP 仅输出文本单选、多选和判断题，填空、简答和图片题需要另行处理。
+
+答案只接受明确写法，例如 `A`、`AB`、`A,C` 和明确的判断答案。`A或B`、`A/B`、`A（待核实）` 不会抽取其中字母后自动通过。数字答案仅兼容 1–26 的整数选项序号，使用前应核对原卷的编号规则。
+
+`build_bank_file` 成功时返回完整逐题报告，其中 `source` 是提交时的原题，`question` 是可读取的标准题目。应保存这份报告并与原卷逐题复核；生成的 JSON 仅包含软件练习所需的数据。当前回归样本覆盖中文别名、换行解析、判断答案、歧义答案、混合题型和缺失字段，尚未覆盖 Word/PDF 原卷的自动提取准确率。
+
+### PDF 提取试验
+
+本地安装 Poppler 后，可以对“数字题号 + 题内参考答案”的试卷执行试验。它不是通用 PDF 导入器，扫描件、多栏排版、集中答案表需要另外处理。
+
+```powershell
+node scripts/trial-pdf-bank.mjs "原卷.pdf" "release/pdf-trial"
+```
+
+报告保存页码、原题号和原始片段；有错误时整卷不导出。图片选项应从原卷提取并目视确认对应关系后，通过以下工具附加到空选项。工具会重新检查整卷并验证生成的题库包能被读取，不会猜测图片内容。
+
+```powershell
+node scripts/trial-attach-option.mjs "release/pdf-trial/report.json" 33 D "已核对的选项.png" "release/pdf-trial/reviewed-bank.allright"
+```
+
+附图成功和题库结构通过不等于整卷内容已经人工核验；输出报告会明确保留这一限制。试卷与报告应放在本地忽略目录，避免将第三方试题提交到仓库。
+
+生成后，在设置中刷新「Agent 生成的题库」，查看章节和问题预览，再确认导入。也可以下载 JSON Schema 给不支持 MCP 的 Agent 使用。Schema 描述标准文本格式；答案是否属于选项、题号是否重复等仍需通过题库校验。
+
+应用与 MCP 共用结构校验规则：单选题答案数量、重复选项、空选项和整库重复题号都会检查。章节编辑中的重复题号在保存章节时检查。
+
 ## 验证
 
 ```bash
 npm run build
+npm run verify:bank-validation
 npm run verify:deploy
 ```
 

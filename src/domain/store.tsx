@@ -23,6 +23,8 @@ export interface ActiveSession {
   startedAt: number
   answers: Record<string, { chosen: string[]; correct: boolean; elapsedMs: number }>
   questionStartedAt: number
+  drafts?: Record<string, string[]>
+  elapsedByQuestion?: Record<string, number>
 }
 
 interface State {

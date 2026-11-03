@@ -48,7 +48,7 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
   const revealed = current ? !!session?.answers[current.id] : false
 
   useEffect(() => {
-    setSelected([])
+    setSelected(current ? session?.answers[current.id]?.chosen ?? session?.drafts?.[current.id] ?? [] : [])
   }, [session?.index, session?.id])
 
   /* 钩子要排在提前 return 之前，不然切页面时 React 会抱怨 */
@@ -90,7 +90,7 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
   const submit = () => {
     if (!selected.length || revealed) return
     const correct = isAnswerCorrect(current, selected)
-    const elapsedMs = Date.now() - session.questionStartedAt
+    const elapsedMs = (session.elapsedByQuestion?.[current.id] ?? 0) + Date.now() - session.questionStartedAt
     recordAttempt({
       id: newId('a'),
       bankId: session.bankId,
@@ -106,9 +106,18 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
     })
   }
 
+  const moveTo = (index: number) => {
+    if (index < 0 || index >= questions.length) return
+    updateSession({ ...session, index, questionStartedAt: Date.now(),
+      drafts: { ...session.drafts, [current.id]: selected },
+      elapsedByQuestion: { ...session.elapsedByQuestion, [current.id]: (session.elapsedByQuestion?.[current.id] ?? 0) + Date.now() - session.questionStartedAt },
+    })
+  }
+
   const advance = () => {
     const isLast = session.index + 1 >= questions.length
     if (isLast) {
+      if (answeredCount !== questions.length) return
       const wrongQuestions = questions
         .filter((q) => session.answers[q.id] && !session.answers[q.id].correct)
         .map((q) => ({ question: q, chosen: session.answers[q.id].chosen }))
@@ -124,7 +133,7 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
       endSession()
       return
     }
-    updateSession({ ...session, index: session.index + 1, questionStartedAt: Date.now() })
+    moveTo(session.index + 1)
   }
 
   return (
@@ -290,12 +299,10 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
             ) : null}
 
             <div className="practice__actions">
-              {revealed ? (
-                <button type="button" className="btn btn--primary btn--lg" onClick={advance}>
-                  {session.index + 1 >= questions.length ? '看本次结算' : '下一题'}
-                  <ArrowRight size={16} strokeWidth={2} />
-                </button>
-              ) : (
+              <button type="button" className="btn btn--lg" disabled={session.index === 0} onClick={() => moveTo(session.index - 1)}>
+                <ChevronLeft size={16} strokeWidth={2} />上一题
+              </button>
+              {!revealed ? (
                 <button
                   type="button"
                   className="btn btn--primary btn--lg"
@@ -304,7 +311,13 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
                 >
                   确认答案
                 </button>
-              )}
+              ) : null}
+              <button type="button" className={`btn btn--lg${revealed ? ' btn--primary' : ''}`} onClick={advance}
+                disabled={session.index + 1 >= questions.length && answeredCount !== questions.length}
+                title={session.index + 1 >= questions.length && answeredCount !== questions.length ? `还有 ${questions.length - answeredCount} 题未提交` : undefined}>
+                {session.index + 1 >= questions.length ? '看本次结算' : '下一题'}
+                <ArrowRight size={16} strokeWidth={2} />
+              </button>
               {!revealed ? (
                 missingImages ? (
                   <span className="t-meta" role="status">有图片没加载出来，这题先别提交。</span>

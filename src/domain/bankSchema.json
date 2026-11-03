@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "题库名称，显示在题库列表里"
+    },
+    "questions": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "全题库唯一的题目编号"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "single",
+              "multiple",
+              "judge"
+            ],
+            "description": "题型：单选、多选、判断"
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1,
+            "description": "章节名，同名即同一章"
+          },
+          "stem": {
+            "type": "string",
+            "minLength": 1,
+            "description": "题干文字"
+          },
+          "options": {
+            "minItems": 2,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "选项标记，如 A"
+                },
+                "text": {
+                  "type": "string",
+                  "description": "选项文字"
+                }
+              },
+              "required": [
+                "key",
+                "text"
+              ],
+              "additionalProperties": false
+            },
+            "description": "选项；判断题固定用 正确 / 错误"
+          },
+          "answer": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "正确答案，必须出现在选项 key 里；判断题写 正确 或 错误"
+          },
+          "explanation": {
+            "type": "string",
+            "description": "解析，没有就留空字符串，不要自己编"
+          },
+          "difficulty": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "难度 1–5"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "知识点标签，没有就空数组"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "category",
+          "stem",
+          "options",
+          "answer",
+          "explanation",
+          "difficulty",
+          "tags"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "name",
+    "questions"
+  ],
+  "additionalProperties": false
+}

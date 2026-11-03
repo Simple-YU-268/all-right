@@ -111,7 +111,7 @@ function ChapterEditor({ bank, editor, onCancel, onSaved }: {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const parsed = useMemo(
-    () => (text.trim() ? readBankFile(text, bank.name, { assets: knownAssets }) : null),
+    () => (text.trim() ? readBankFile(text, bank.name, { assets: knownAssets, scope: 'chapter' }) : null),
     [text, bank.name, knownAssets],
   )
   const sourceChapters = [...new Set(parsed?.valid.map((question) => question.category) ?? [])]
@@ -127,7 +127,7 @@ function ChapterEditor({ bank, editor, onCancel, onSaved }: {
   const readFile = async (file: File) => {
     try {
       const content = await file.text()
-      const result = readBankFile(content, bank.name, { assets: knownAssets })
+      const result = readBankFile(content, bank.name, { assets: knownAssets, scope: 'chapter' })
       const categories = [...new Set(result.valid.map((question) => question.category))]
       setText(content)
       setSource('')

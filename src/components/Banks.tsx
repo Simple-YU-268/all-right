@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { ArrowRight, Robot as Bot, Download, FileCode as FileJson, Delete as Trash2, Upload } from '@icon-park/react'
 import { useApp } from '../domain/store'
 import { readBankFile, type ParsedBank } from '../domain/parseBank'
@@ -14,6 +14,7 @@ import { CopyButton, EmptyState } from './bits'
 import { confirmAction } from '../domain/shell'
 import { ChapterGuide } from './ChapterGuide'
 import { ChapterManager } from './ChapterManager'
+import { ChapterDistribution, PreviewIssues, PreviewStats } from './ImportPreview'
 
 interface PendingImport {
   parsed: ParsedBank
@@ -110,16 +111,6 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
       setBusy(false)
     }
   }
-
-  const parsedStats = useMemo(() => {
-    if (!pending) return null
-    const questions = pending.parsed.valid
-    const categories = new Set(questions.map((q) => q.category)).size
-    const types = { single: 0, multiple: 0, judge: 0 }
-    for (const q of questions) types[q.type] += 1
-    const imageBytes = [...pending.files.values()].reduce((sum, bytes) => sum + bytes.length, 0)
-    return { categories, types, total: questions.length, images: pending.files.size, imageBytes }
-  }, [pending])
 
   return (
     <>
@@ -256,68 +247,11 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                   <p className="preview__title">导入预览</p>
                   <span className="chip chip--blue">{pending.parsed.name}</span>
                 </header>
-                {parsedStats ? (
-                  <div className="preview__stats">
-                    <div className="preview__stat">
-                      <span className="t-label">可导入题目</span>
-                      <b>{parsedStats.total}</b>
-                    </div>
-                    <div className="preview__stat">
-                      <span className="t-label">章节数</span>
-                      <b>{parsedStats.categories}</b>
-                    </div>
-                    <div className="preview__stat">
-                      <span className="t-label">单选</span>
-                      <b>{parsedStats.types.single}</b>
-                    </div>
-                    <div className="preview__stat">
-                      <span className="t-label">多选</span>
-                      <b>{parsedStats.types.multiple}</b>
-                    </div>
-                    <div className="preview__stat">
-                      <span className="t-label">判断</span>
-                      <b>{parsedStats.types.judge}</b>
-                    </div>
-                    {parsedStats.images > 0 ? (
-                      <div className="preview__stat">
-                        <span className="t-label">配图</span>
-                        <b>{parsedStats.images}</b>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
+                <PreviewStats parsed={pending.parsed} imageCount={pending.files.size} />
 
                 {pending.parsed.valid.length > 0 ? <ChapterDistribution questions={pending.parsed.valid} /> : null}
 
-                {pending.parsed.issues.length > 0 ? (
-                  <div className="issues">
-                    <p className="t-label" style={{ color: 'var(--wrong)', marginBottom: 'var(--s2)' }}>
-                      {pending.parsed.issues.length} 处需要确认
-                    </p>
-                    {pending.parsed.issues.slice(0, 40).map((issue, i) => (
-                      <p className="issue" key={`${issue.index}-${i}`}>
-                        <span className="issue__where">{issue.index ? `第 ${issue.index} 题` : '文件'}</span>
-                        <span>
-                          {issue.field}：{issue.message}
-                        </span>
-                      </p>
-                    ))}
-                    {pending.parsed.issues.length > 40 ? (
-                      <p className="issue">还有 {pending.parsed.issues.length - 40} 处未显示</p>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {pending.parsed.warnings.length > 0 ? (
-                  <div className="issues">
-                    {pending.parsed.warnings.slice(0, 10).map((warning, i) => (
-                      <p className="issue" key={i}>
-                        <span className="issue__where">提示</span>
-                        <span>{warning}</span>
-                      </p>
-                    ))}
-                  </div>
-                ) : null}
+                <PreviewIssues parsed={pending.parsed} />
 
                 <div className="preview__actions">
                   <button
@@ -448,22 +382,3 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
     </>
   )
 }
-
-function ChapterDistribution({ questions }: { questions: Bank['questions'] }) {
-  const chapters = new Map<string, number>()
-  for (const question of questions) chapters.set(question.category, (chapters.get(question.category) ?? 0) + 1)
-  return (
-    <details className="chapter-distribution">
-      <summary>查看章节（{chapters.size}）</summary>
-      <ul aria-label="章节分布">
-        {[...chapters].map(([name, count]) => (
-          <li key={name}>
-            <span>{name}</span>
-            <span className="t-data">{count} 题</span>
-          </li>
-        ))}
-      </ul>
-    </details>
-  )
-}
-

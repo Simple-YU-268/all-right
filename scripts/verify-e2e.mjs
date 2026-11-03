@@ -29,7 +29,9 @@ const rail = (label) => page.locator('.rail__item').filter({ hasText: label }).f
 /* 1. 设置页上的模板本身就要能用 */
 await rail('设置').click()
 await page.waitForTimeout(400)
-const tplText = await page.locator('pre.schema__code.t-data').first().innerText()
+await page.getByText('JSON 模板与兼容字段', { exact: true }).click()
+await page.getByText('章节组织规则', { exact: true }).click()
+const tplText = await page.locator('#settings-format pre.schema__code.t-data').innerText()
 let tpl = null
 try {
   tpl = JSON.parse(tplText)
@@ -86,6 +88,13 @@ const firstQuestion = tpl.questions.find((question) => question.stem === firstSt
 const rightKey = firstQuestion.answer[0]
 const wrongText = firstQuestion.options.find((option) => option.key !== rightKey)?.text
 await page.locator('.option').filter({ hasText: wrongText }).first().click()
+ok(await page.getByRole('button', { name: '上一题', exact: true }).isDisabled(), '首题上一题不可用')
+await page.getByRole('button', { name: '下一题', exact: true }).click()
+await page.getByRole('button', { name: '下一题', exact: true }).click()
+ok(await page.getByRole('button', { name: '看本次结算', exact: true }).isDisabled(), '跳到末题时不能提前结算')
+await page.getByRole('button', { name: '上一题', exact: true }).click()
+await page.getByRole('button', { name: '上一题', exact: true }).click()
+ok(await page.locator('.option--selected').filter({ hasText: wrongText }).count() === 1, '返回未答题保留草稿选项')
 await page.waitForTimeout(200)
 await page.getByRole('button', { name: '确认答案' }).click()
 await page.waitForTimeout(500)
@@ -94,6 +103,10 @@ ok(resultText === '答错了', `批改结果为「答错了」（实际「${resu
 ok((await page.locator('.option--right').count()) === 1, '正确答案被标为答对（石绿勾）')
 ok((await page.locator('.option--wrong').count()) === 1, '选错的那条被标为选错了（朱红叉）')
 ok((await page.locator('.option--picked').count()) === 1, '你划的那条被单独标记（靛蓝下划线）')
+await page.getByRole('button', { name: '下一题', exact: true }).click()
+await page.getByRole('button', { name: '上一题', exact: true }).click()
+ok(await page.locator('.option--picked').filter({ hasText: wrongText }).count() === 1, '回看已答题恢复原选择')
+ok(await page.getByRole('button', { name: '确认答案', exact: true }).count() === 0, '已答题不能重复提交')
 
 /* 5. 走完这题，进结算 */
 await page.getByRole('button', { name: /看本次结算|下一题/ }).click()
