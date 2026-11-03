@@ -51,6 +51,7 @@ export function parseWorkspace(raw: string): Workspace {
   }
   return {
     version: 2,
+    activeSession: parsed.activeSession as Workspace['activeSession'],
     banks,
     activeBankId: typeof parsed.activeBankId === 'string' ? parsed.activeBankId : null,
     attempts: Array.isArray(parsed.attempts) ? (parsed.attempts as Workspace['attempts']) : [],

@@ -25,10 +25,10 @@
 
 ## 🚀 快速开始
 
-当前版本 **v0.6.0**，支持 Windows x64。
+当前版本 **v0.7.0**，支持 Windows x64。
 
-- [下载安装包](https://github.com/Simple-YU-268/all-right/releases/download/v0.6.0/ALLRIGHT-Setup-0.6.0.exe)
-- [查看更新与校验文件](https://github.com/Simple-YU-268/all-right/releases/tag/v0.6.0)
+- [下载安装包](https://github.com/Simple-YU-268/all-right/releases/download/v0.7.0/ALLRIGHT-Setup-0.7.0.exe)
+- [查看更新与校验文件](https://github.com/Simple-YU-268/all-right/releases/tag/v0.7.0)
 
 安装后，在「题库」载入示例题库即可试用，也可以导入自己的文件。
 
@@ -52,6 +52,14 @@
 4. 答错的题自动进入错题本，答对后移出；看板可以查看练习进度。
 
 章节可以在题库页编辑、导入或导出。同一题库中，`category` 相同的题目会归为同一章。
+
+第二主题「手绘笔记」可在「设置 → 通用偏好 → 界面主题」切换，默认仍为「油印卷子」。偏好保存在当前设备；详见[主题说明](docs/themes.md)。
+
+v0.7.0 支持未完成练习恢复、错题复习范围与多选重刷，以及题库全文检索、条件筛选、结果练习和章节编辑。导入预览会提示与已有题库的题号冲突和相似题干，不自动删除或覆盖题目。
+
+| 手绘笔记：学习桌 | 手绘笔记：练习 |
+| :---: | :---: |
+| ![手绘学习桌](docs/screenshots/theme-looseleaf-dashboard.png) | ![手绘练习](docs/screenshots/theme-looseleaf-practice.png) |
 
 纯文字题库使用 `.json`，带图题库使用 `.allright`。设置页提供可复制的 JSON 模板；具体格式见[题库说明](docs/guide.md#题库格式)。
 

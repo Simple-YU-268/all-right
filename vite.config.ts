@@ -11,7 +11,12 @@ export default defineConfig(({ command }) => ({
     rollupOptions: {
       output: {
         /* 公式排版单独成块：应用代码更新时，KaTeX 这一块还能留在浏览器缓存里。 */
-        manualChunks: (id) => (id.includes('node_modules/katex') ? 'katex' : undefined),
+        manualChunks: (id) => {
+          if (id.includes('node_modules/katex')) return 'katex'
+          if (id.includes('/ink/textures-paper.generated')) return 'looseleaf-paper'
+          if (id.includes('/vendor/looseleaf/ink/')) return 'looseleaf-ink'
+          if (id.includes('/node_modules/')) return 'vendor'
+        },
       },
     },
   },

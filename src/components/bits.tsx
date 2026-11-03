@@ -1,6 +1,10 @@
+import { ThemedButton } from './ThemedButton'
 import { useState, type ReactNode } from 'react'
 import { Check, Copy } from '@icon-park/react'
 import { MASTERY_LABELS, type Mastery } from '../domain/types'
+import { useTheme } from '../domain/theme'
+import { Tabs, TabsList, TabsTrigger } from '../vendor/looseleaf/ui/tabs'
+import { Badge } from '../vendor/looseleaf/ui/badge'
 
 /** 剪贴板：优先用 Clipboard API，不可用时退回选区复制。 */
 async function copyText(text: string): Promise<boolean> {
@@ -48,10 +52,10 @@ export function CopyButton({
   }
 
   return (
-    <button type="button" className={className} onClick={() => void handle()}>
+    <ThemedButton type="button" className={className} onClick={() => void handle()}>
       {state === 'ok' ? <Check size={13} strokeWidth={2.2} /> : <Copy size={13} strokeWidth={2} />}
       {state === 'ok' ? '已复制' : state === 'fail' ? '复制失败，请手动选取' : children}
-    </button>
+    </ThemedButton>
   )
 }
 
@@ -109,6 +113,8 @@ export function InkSteps({
 
 /** 掌握度标记：一枚方块 + 状态名，颜色即墨阶。 */
 export function MasteryMark({ mastery }: { mastery: Mastery }) {
+  const [theme] = useTheme()
+  if (theme === 'looseleaf') return <Badge variant="outline" size="sm" tone={mastery >= 4 ? 'grass' : 'sky'}>{masteryLabel(mastery)}</Badge>
   return (
     <span className="chip chip--plain" title={`掌握度：${masteryLabel(mastery)}`}>
       <span
@@ -155,10 +161,15 @@ export function Segmented<T extends string | number>({
   onChange: (value: T) => void
   label: string
 }) {
+  const [theme] = useTheme()
+  if (theme === 'looseleaf') return <Tabs value={String(value)} onValueChange={next => {
+    const option = options.find(item => String(item.value) === next)
+    if (option) onChange(option.value)
+  }}><TabsList className="segmented" aria-label={label}>{options.map(option => <TabsTrigger key={String(option.value)} value={String(option.value)} className="segmented__item">{option.label}</TabsTrigger>)}</TabsList></Tabs>
   return (
     <div className="segmented" role="group" aria-label={label}>
       {options.map((opt) => (
-        <button
+        <ThemedButton
           key={String(opt.value)}
           type="button"
           className={opt.value === value ? 'segmented__item segmented__item--active' : 'segmented__item'}
@@ -166,7 +177,7 @@ export function Segmented<T extends string | number>({
           onClick={() => onChange(opt.value)}
         >
           {opt.label}
-        </button>
+        </ThemedButton>
       ))}
     </div>
   )

@@ -1,0 +1,53 @@
+import assert from 'node:assert/strict'
+import { chromium } from 'playwright-core'
+
+const browser = await chromium.launch({ executablePath: process.env.EDGE_PATH ?? 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe', headless: true })
+try {
+  for (const theme of ['classic', 'looseleaf']) {
+    const context = await browser.newContext()
+    const page = await context.newPage()
+    await page.goto(process.env.ALLRIGHT_TEST_URL ?? 'http://127.0.0.1:5180/')
+    await page.evaluate(theme => {
+      const questions = [1, 2].map(id => ({ id: `q${id}`, category: '恢复测试', type: 'single', stem: `题目 ${id}`, options: [{ key: 'A', text: '正确' }, { key: 'B', text: '错误' }], answer: ['A'], explanation: '解析', tags: [], difficulty: 1 }))
+      localStorage.setItem('allright.theme.v1', theme)
+      localStorage.setItem('allright.workspace.v1', JSON.stringify({ version: 2, banks: [{ id: 'b', name: '恢复测试', questions, importedAt: 1 }], activeBankId: 'b', attempts: [], stats: {}, sessions: [] }))
+    }, theme)
+    await page.reload()
+    if (theme === 'classic') await page.locator('.rail__item').filter({ hasText: '练习' }).click()
+    else await page.locator('.study-nav').getByRole('tab', { name: '练习', exact: true }).click()
+    await page.getByRole('button', { name: /^开始练习/ }).click()
+    await page.locator('.option__pick').nth(1).click()
+    await page.waitForTimeout(1200)
+    const leave = theme === 'classic' ? page.locator('.rail__item').filter({ hasText: '看板' }) : page.locator('.study-nav').getByRole('tab', { name: '学习桌', exact: true })
+    await leave.click()
+    await page.waitForTimeout(150)
+    const pausedTime = await page.evaluate(() => JSON.parse(localStorage.getItem('allright.workspace.v1')).activeSession.elapsedMs)
+    await page.waitForTimeout(1300)
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('allright.workspace.v1')).activeSession.elapsedMs), pausedTime, 'Away time is excluded')
+    await page.reload()
+    await page.getByRole('button', { name: '继续练习', exact: true }).click()
+    assert.equal(await page.locator('.option__pick[aria-pressed="true"]').count(), 1)
+    await page.getByRole('button', { name: '确认答案', exact: true }).click()
+    await page.waitForTimeout(1200)
+    await page.reload()
+    await page.getByRole('button', { name: '继续练习', exact: true }).click()
+    assert.match(await page.locator('.result__title').innerText(), /答错/)
+    const count = await page.evaluate(() => JSON.parse(localStorage.getItem('allright.workspace.v1')).attempts.length)
+    assert.equal(count, 1)
+    await page.getByRole('button', { name: '结束并结算', exact: true }).click()
+    await page.waitForTimeout(200)
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('allright.workspace.v1')).activeSession), null)
+    await page.evaluate(() => {
+      const workspace = JSON.parse(localStorage.getItem('allright.workspace.v1'))
+      workspace.activeSession = { id: 'bad', mode: 'random', bankId: 'b', questionIds: ['missing'], index: 0, answers: {} }
+      localStorage.setItem('allright.workspace.v1', JSON.stringify(workspace))
+    })
+    await page.reload()
+    await page.getByRole('status').filter({ hasText: '未完成练习已失效' }).waitFor()
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('allright.workspace.v1')).attempts.length), 1)
+    await context.close()
+  }
+  console.log('PASS both themes: draft recovery, submitted-answer recovery, no duplicate attempts, partial settlement')
+} finally {
+  await browser.close()
+}

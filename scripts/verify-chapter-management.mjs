@@ -79,8 +79,10 @@ try {
   assert.equal(current.sessions[0].category, '第一章 已改名')
   assert.deepEqual([...new Set(current.banks[0].questions.map((entry) => entry.category))], ['第一章 已改名', '第二章'])
   await navigate('练习')
+  await page.getByRole('button', { name: '继续练习', exact: true }).click()
   assert.equal(await page.locator('.practice__counter').count(), 1)
   await navigate('题库')
+  current = await workspace()
   await expand()
 
   await row('第一章 已改名').getByRole('button', { name: '编辑章节', exact: true }).click()
@@ -236,8 +238,10 @@ try {
   assert.deepEqual(current.stats, { shared: original.stats.shared })
   assert.deepEqual(current.attempts, original.attempts.filter((attempt) => attempt.bankId === 'beta'))
   await navigate('练习')
+  await page.getByRole('button', { name: '继续练习', exact: true }).click()
   assert.equal(await page.locator('.practice__counter').innerText(), '第 1 / 1 题')
   await navigate('题库')
+  current = await workspace()
   await expand()
 
   await bank.getByRole('button', { name: '导入章节', exact: true }).click()
@@ -254,7 +258,10 @@ try {
   await navigate('题库')
   await expand()
   assert.equal(await bank.locator('.chapter-row').count(), 5)
-  assert.deepEqual(await workspace(), current)
+  const restored = await workspace()
+  assert.equal(restored.activeSession.elapsedMs, current.activeSession.elapsedMs)
+  assert.deepEqual(restored.activeSession.questionIds, current.activeSession.questionIds)
+  assert.deepEqual({ ...restored, activeSession: null }, { ...current, activeSession: null })
   assert.deepEqual(errors, [])
   console.log('PASS 单章编辑与导出删除、多选与全选批量导入、自动分章、同名追加、跨章题号冲突、原子校验、记录隔离、持久化、窄屏和进行中的练习保护')
 } finally {

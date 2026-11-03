@@ -42,10 +42,14 @@ export function buildSession(
     mode: plan.mode,
     category: plan.category,
     questionIds: picked.map((q) => q.id),
+    questionSignatures: Object.fromEntries(picked.map(q => [q.id, JSON.stringify([q.type, q.stem, q.stemBlocks, q.options, q.answer])])),
     index: 0,
     startedAt: Date.now(),
     answers: {},
     questionStartedAt: Date.now(),
+    clockAt: Date.now(),
+    elapsedMs: 0,
+    paused: false,
   }
 }
 

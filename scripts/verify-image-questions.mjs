@@ -116,8 +116,8 @@ try {
   await page.locator('.explain .media__img').first().waitFor({ timeout: 5000 })
   assert.equal(await page.locator('.explain .media__img').count(), 1, '解析里也渲染出配图')
 
-  /* 答错了不自动翻页：批改、解析、配图都留在这一屏 */
-  assert.equal(await page.locator('.practice__counter').innerText(), '第 1 / 2 题', '答错了留在原地看解析')
+  assert.match(await page.locator('.practice__counter').innerText(), /第 1 \/ 2 题/)
+  assert.equal(await page.locator('.explain .media__img').count(), 1, '答错后停留显示解析配图')
 
   /* 这一章还有一题，练完才回得到练习首页 */
   await page.getByRole('button', { name: '下一题' }).click()
@@ -185,6 +185,9 @@ try {
   await page.waitForTimeout(600)
   await rail('练习').click()
   await page.waitForTimeout(300)
+  await page.getByRole('button', { name: '结束并结算', exact: true }).click()
+  await page.getByRole('button', { name: '去看板', exact: true }).click()
+  await rail('练习').click()
   await page.getByRole('button', { name: '按章节', exact: true }).click()
   await page.locator('.chapter-entry').first().click()
   await page.waitForSelector('.media--missing', { timeout: 8000 })

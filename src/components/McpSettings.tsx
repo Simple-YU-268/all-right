@@ -1,3 +1,4 @@
+import { ThemedButton } from './ThemedButton'
 import { useCallback, useEffect, useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { CheckOne, Download, Refresh } from '@icon-park/react'
@@ -94,19 +95,19 @@ export function McpSettings() {
           <div className="mcp__heading"><h3 className="t-label">连接配置</h3><span className="mcp__badge">本地 stdio</span></div>
           <div className="settings__actions">
             <CopyButton text={config} className="btn btn--sm">复制 MCP 配置</CopyButton>
-            <button type="button" className="btn btn--sm" disabled={checking} onClick={() => {
+            <ThemedButton type="button" className="btn btn--sm" disabled={checking} onClick={() => {
               setChecking(true)
               setConnection(null)
               void invoke<string>('check_mcp').then(text => setConnection({ ok: true, text })).catch((reason: unknown) => setConnection({ ok: false, text: String(reason) })).finally(() => setChecking(false))
-            }}><CheckOne size={14} />{checking ? '检测中…' : '检测 MCP'}</button>
-            <button
+            }}><CheckOne size={14} />{checking ? '检测中…' : '检测 MCP'}</ThemedButton>
+            <ThemedButton
               type="button"
               className="btn btn--sm"
               onClick={() => downloadJson('allright-题库结构.json', BANK_JSON_SCHEMA)}
             >
               <Download size={13} strokeWidth={2} />
               下载 JSON Schema
-            </button>
+            </ThemedButton>
           </div>
           {connection ? <p className={`mcp__feedback ${connection.ok ? 'mcp__feedback--success' : 'mcp__feedback--error'}`} role={connection.ok ? 'status' : 'alert'}>{connection.text}</p> : null}
           <details className="mcp__config"><summary>查看连接配置</summary><pre className="schema__code t-data">{config}</pre></details>
@@ -116,7 +117,7 @@ export function McpSettings() {
           <div className="mcp__outputs" aria-busy={loading}>
             <div className="mcp__heading">
               <h3 className="t-label">Agent 生成的题库 <span className="mcp__count">{outputs.length}</span></h3>
-              <button type="button" className="btn btn--sm mcp__refresh" disabled={loading} title="刷新题库列表" aria-label="刷新题库列表" onClick={() => void loadOutputs()}><Refresh size={14} /></button>
+              <ThemedButton type="button" className="btn btn--sm mcp__refresh" disabled={loading} title="刷新题库列表" aria-label="刷新题库列表" onClick={() => void loadOutputs()}><Refresh size={14} /></ThemedButton>
             </div>
             {status ? <p className="mcp__feedback mcp__feedback--success" role="status">{status}</p> : null}
             {outputs.length === 0 ? (
@@ -131,7 +132,7 @@ export function McpSettings() {
                         {Math.max(1, Math.round(file.bytes / 1024))} KB · {new Date(file.modifiedAt).toLocaleString('zh-CN')}
                       </p>
                     </div>
-                    <button type="button" className="btn btn--sm" aria-pressed={selected?.name === file.name} disabled={Boolean(opening)} onClick={() => void openOutput(file.name)}>{opening === file.name ? '读取中…' : '查看'}</button>
+                    <ThemedButton type="button" className="btn btn--sm" aria-pressed={selected?.name === file.name} disabled={Boolean(opening)} onClick={() => void openOutput(file.name)}>{opening === file.name ? '读取中…' : '查看'}</ThemedButton>
                   </li>
                 ))}
               </ul>
@@ -146,15 +147,15 @@ export function McpSettings() {
                 {selected.parsed.valid.length > 0 ? <ChapterDistribution questions={selected.parsed.valid} /> : null}
                 <PreviewIssues parsed={selected.parsed} />
                 <div className="preview__actions">
-                  <button
+                  <ThemedButton
                     type="button"
                     className="btn btn--primary"
                     onClick={importSelected}
                     disabled={!selected.parsed.valid.length}
                   >
                     导入 {selected.parsed.valid.length} 题
-                  </button>
-                  <button type="button" className="btn btn--ghost" onClick={() => setSelected(null)}>取消</button>
+                  </ThemedButton>
+                  <ThemedButton type="button" className="btn btn--ghost" onClick={() => setSelected(null)}>取消</ThemedButton>
                 </div>
               </div>
             ) : null}

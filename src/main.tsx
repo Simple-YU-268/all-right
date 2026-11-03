@@ -3,12 +3,16 @@ import { createRoot } from 'react-dom/client'
 import './styles/tokens.css'
 import './styles/base.css'
 import './styles/app.css'
+import './styles/looseleaf.generated.css'
+import './styles/themes.css'
 import { AppProvider } from './domain/store'
 import { App } from './App'
 import { applyMotion, loadMotion } from './domain/motion'
 import { loadWorkspace } from './domain/storage'
+import { applyTheme, loadTheme } from './domain/theme'
 
 applyMotion(loadMotion())
+applyTheme(loadTheme())
 
 const root = createRoot(document.getElementById('root')!)
 

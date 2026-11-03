@@ -11,8 +11,10 @@ ALL RIGHT 使用现有开源项目处理通用能力，题库和练习相关规�
 | ZIP 压缩与解压 | fflate | MIT |
 | 界面图标 | IconPark React | Apache-2.0 |
 | 公式排版 | KaTeX | MIT |
+| 手绘主题绘线与字体 | Looseleaf / Kevin Sans（Kevin Ngo） | MIT |
 
 npm 实际版本、传递依赖及随包许可证见根目录 `THIRD_PARTY_NOTICES.md`。
+Looseleaf 为直接引入的固定版本源码，来源与版本见 `src/vendor/looseleaf/SOURCE.md`，许可证原文见同目录 `LICENSE` 及 `public/fonts/looseleaf/LICENSE`。上游为 https://github.com/kevintngo/looseleaf 。
 运行 `npm run notices` 可从锁文件与本地已安装依赖重新生成，安装包包含该文件。
 
 ## v0.4.1 核对结果

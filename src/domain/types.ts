@@ -74,6 +74,7 @@ export interface SessionRecord {
 }
 
 export interface Workspace {
+  activeSession?: import('./store').ActiveSession | null
   version: 2
   banks: Bank[]
   activeBankId: string | null

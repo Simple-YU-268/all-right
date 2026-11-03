@@ -6,7 +6,7 @@
 
 **离线电子刷题台** · 章节直达 · 错题本 · 进度看板 · 图片题
 
-[![release](https://img.shields.io/badge/release-v0.4.0-4a5dab)](https://github.com/Simple-YU-268/all-right/releases/tag/v0.4.0)
+[![release](https://img.shields.io/badge/release-v0.7.0-4a5dab)](https://github.com/Simple-YU-268/all-right/releases/tag/v0.7.0)
 [![platform](https://img.shields.io/badge/platform-Windows%20x64-4a5dab)](https://github.com/Simple-YU-268/all-right/releases)
 [![stack](https://img.shields.io/badge/stack-Rust%20%2B%20Tauri%202%20%2B%20React-4a5dab)](https://tauri.app)
 [![offline](https://img.shields.io/badge/data-local%20only%20%2F%20never%20uploaded-2c7355)](https://github.com/Simple-YU-268/all-right)
@@ -49,11 +49,11 @@
 
 ## 下载
 
-Windows x64 安装包见 [Releases](https://github.com/Simple-YU-268/all-right/releases)，当前版本 **v0.4.0**，内置 MCP 无需 Node.js：
+Windows x64 安装包见 [Releases](https://github.com/Simple-YU-268/all-right/releases)，当前版本 **v0.7.0**，内置 MCP 无需 Node.js：
 
 | 文件 | 说明 | 大小 |
 | --- | --- | --- |
-| [`ALLRIGHT-Setup-0.4.0.exe`](https://github.com/Simple-YU-268/all-right/releases/download/v0.4.0/ALLRIGHT-Setup-0.4.0.exe) | 安装版，含 MCP。设置页复制 Agent 配置 | 约 41 MiB |
+| [`ALLRIGHT-Setup-0.7.0.exe`](https://github.com/Simple-YU-268/all-right/releases/download/v0.7.0/ALLRIGHT-Setup-0.7.0.exe) | 安装版，含 MCP。设置页复制 Agent 配置 | 以发行附件为准 |
 | `SHA256SUMS.txt` | 安装包 SHA-256 校验值 | — |
 
 安装包和校验值放在同一个发行版里。校验方法：
@@ -356,3 +356,13 @@ public/               本地字体、示例题库（JSON 与 .allright）与 fav
 scripts/              图标生成与回归验证
 docs/screenshots/     README 用图
 ```
+# 未完成练习
+
+练习中的题序、当前题、未提交选择、已答结果和累计用时会保存在当前设备。刷新或重启后，可选择「继续练习」或「结束并结算」；提前结算只统计已经提交的题目，不将未答题算错。
+
+离开练习页或切到后台会暂停计时，回来后点击继续。已提交答案不会因恢复而再次计入统计。切换题库不会改变原练习的题目；继续时回到原题库。修改或删除练习中的题目会结束该会话，并保留未受影响的记录。
+
+会话每秒保存计时检查点，选择与提交也会触发保存。强制终止时可恢复最后成功写入的状态；尚未落盘的最后操作和不足一个检查点的用时不保证保留。此机制不承诺断电零丢失。
+
+开发验证：`npm run verify:session-recovery` 检查两套主题的刷新恢复与暂停计时；先执行 `npx tauri build --no-bundle`，再执行 `npm run verify:native-session` 检查真实桌面进程终止与重启。原生测试临时替换工作区，结束后还原原文件，运行前应关闭其他 ALL RIGHT 实例。
+

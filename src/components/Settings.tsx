@@ -1,3 +1,4 @@
+import { ThemedButton } from './ThemedButton'
 import { useRef, useState } from 'react'
 import { ArrowRight, Download, FileCode as FileJson, Upload, SettingConfig, Robot, DatabaseConfig, Code } from '@icon-park/react'
 import { useApp } from '../domain/store'
@@ -5,6 +6,10 @@ import { downloadBinary, downloadJson } from '../domain/storage'
 import { buildWorkspaceBackup, commitRestoredAssets, readBackupFile } from '../domain/backup'
 import { FIELD_ALIASES, TEMPLATE, TEMPLATE_PRETTY } from '../domain/bankTemplate'
 import { useMotionPref } from '../domain/motion'
+import { ThemePicker } from './ThemePicker'
+import { useTheme } from '../domain/theme'
+import { Tabs, TabsList, TabsTrigger } from '../vendor/looseleaf/ui/tabs'
+import { Switch } from '../vendor/looseleaf/ui/switch'
 import { confirmAction, DATA_PLACE, DATA_RESET, DATA_STORE, IS_TAURI } from '../domain/shell'
 import type { Workspace } from '../domain/types'
 import type { Route } from '../App'
@@ -16,9 +21,10 @@ import { McpSettings } from './McpSettings'
 export function Settings({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const { workspace, replaceWorkspace } = useApp()
   const [motion, setMotion] = useMotionPref()
+  const [theme] = useTheme()
   const backupInput = useRef<HTMLInputElement>(null)
   const [backupStatus, setBackupStatus] = useState<string | null>(null)
-  const [section, setSection] = useState('agent')
+  const [section, setSection] = useState(theme === 'looseleaf' ? 'general' : 'agent')
   const sections = [
     { id: 'agent', label: 'Agent 与连接', icon: Robot },
     { id: 'format', label: '题库格式', icon: Code },
@@ -68,17 +74,20 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
       <div className="content">
         <div className="content__inner">
           <div className="settings-shell">
+            {theme === 'looseleaf' ? <Tabs value={section} onValueChange={setSection} className="settings-tabs">
+              <TabsList variant="line" aria-label="设置分类">{sections.map(({ id, label, icon: Icon }) => <TabsTrigger key={id} value={id}><Icon size={16} />{label}</TabsTrigger>)}</TabsList>
+            </Tabs> : null}
             <nav className="settings-nav" aria-label="设置分类">
               <p className="settings-nav__label">工作区设置</p>
               {sections.map(({ id, label, icon: Icon }) => (
-                <button type="button" key={id} aria-current={section === id ? 'location' : undefined} onClick={() => {
+                <ThemedButton type="button" key={id} aria-current={section === id ? 'location' : undefined} onClick={() => {
                   setSection(id)
                   document.getElementById(`settings-${id}`)?.scrollIntoView({ block: 'start' })
-                }}><Icon size={17} /><span>{label}</span></button>
+                }}><Icon size={17} /><span>{label}</span></ThemedButton>
               ))}
               <div className="settings-nav__footer">ALL RIGHT 全对<span>{IS_TAURI ? '桌面版 · 本地存储' : '网页版 · 本地存储'}</span></div>
             </nav>
-          <div className="settings settings--workspace">
+          <div className="settings settings--workspace" data-section={section}>
             <div id="settings-agent" className="settings-section">
             <McpSettings />
             </div>
@@ -103,18 +112,18 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
                     <CopyButton text={TEMPLATE_PRETTY} className="btn btn--sm">
                       复制模板
                     </CopyButton>
-                    <button
+                    <ThemedButton
                       type="button"
                       className="btn btn--sm"
                       onClick={() => downloadJson('allright-题库模板.json', TEMPLATE)}
                     >
                       <Download size={13} strokeWidth={2} />
                       下载模板
-                    </button>
-                    <button type="button" className="btn btn--sm btn--ghost" onClick={() => onNavigate('banks')}>
+                    </ThemedButton>
+                    <ThemedButton type="button" className="btn btn--sm btn--ghost" onClick={() => onNavigate('banks')}>
                       去题库页
                       <ArrowRight size={13} strokeWidth={2} />
-                    </button>
+                    </ThemedButton>
                   </div>
                 </div>
 
@@ -160,7 +169,7 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
                   换机器或{DATA_RESET}前，先导一份备份。
                 </p>
                 <div className="settings__actions">
-                  <button
+                  <ThemedButton
                     type="button"
                     className="btn btn--sm"
                     onClick={() => {
@@ -172,7 +181,7 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
                   >
                     <Download size={13} strokeWidth={2} />
                     导出备份
-                  </button>
+                  </ThemedButton>
                   <input
                     ref={backupInput}
                     type="file"
@@ -185,13 +194,13 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
                       event.target.value = ''
                     }}
                   />
-                  <button type="button" className="btn btn--sm" onClick={() => backupInput.current?.click()}>
+                  <ThemedButton type="button" className="btn btn--sm" onClick={() => backupInput.current?.click()}>
                     <Upload size={13} strokeWidth={2} />
                     恢复备份
-                  </button>
+                  </ThemedButton>
                 </div>
                 {backupStatus ? <p className="t-meta settings__note" role="status">{backupStatus}</p> : null}
-                <div className="settings-danger"><div><h3>清空工作区</h3><p>删除全部题库、练习记录和错题，无法撤销。</p></div><button type="button" className="btn btn--sm btn--danger" onClick={clearAll}>清空本机数据</button></div>
+                <div className="settings-danger"><div><h3>清空工作区</h3><p>删除全部题库、练习记录和错题，无法撤销。</p></div><ThemedButton type="button" className="btn btn--sm btn--danger" onClick={clearAll}>清空本机数据</ThemedButton></div>
               </div>
             </section>
 
@@ -201,12 +210,13 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
                 <p className="panel__hint">显示与动态效果</p>
               </header>
               <div className="panel__body">
+                <ThemePicker />
                 <div className="settingrow">
                   <div className="settingrow__text">
                     <p className="settingrow__name">结算翻页</p>
                     <p className="t-meta">练习完成时播放翻页动效。</p>
                   </div>
-                  <input className="settings-switch" type="checkbox" role="switch" aria-label="结算翻页" checked={motion === 'full'} onChange={event => setMotion(event.target.checked ? 'full' : 'reduced')} />
+                  {theme === 'looseleaf' ? <Switch aria-label="结算翻页" checked={motion === 'full'} onCheckedChange={checked => setMotion(checked ? 'full' : 'reduced')} /> : <input className="settings-switch" type="checkbox" role="switch" aria-label="结算翻页" checked={motion === 'full'} onChange={event => setMotion(event.target.checked ? 'full' : 'reduced')} />}
                 </div>
                 <p className="t-meta settings__note">
                   系统里开了「减少动态效果」时，翻页会自动跳过。

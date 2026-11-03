@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import {
   Bookmark as BookMarked,
   ChartHistogram as ChartNoAxesColumn,
@@ -14,6 +14,8 @@ import { Practice } from './components/Practice'
 import { Banks } from './components/Banks'
 import { WrongBook } from './components/WrongBook'
 import { Settings } from './components/Settings'
+import { useTheme } from './domain/theme'
+import { LooseleafApp } from './components/LooseleafApp'
 
 export type Route = 'dashboard' | 'practice' | 'banks' | 'wrong' | 'settings'
 
@@ -26,8 +28,14 @@ const NAV: { route: Route; label: string; icon: typeof ChartNoAxesColumn }[] = [
 ]
 
 export function App() {
-  const { workspace, activeBank } = useApp()
-  const [route, setRoute] = useState<Route>('dashboard')
+  const { workspace, activeBank, session, clockSession } = useApp()
+  const [route, setRoute] = useState<Route>(() => session ? 'practice' : 'dashboard')
+  const [theme] = useTheme()
+  const previousRoute = useRef(route)
+  useEffect(() => {
+    if (previousRoute.current === 'practice' && route !== 'practice') clockSession(true)
+    previousRoute.current = route
+  }, [route, clockSession])
 
   const dashboard = useMemo(
     () => computeDashboard(activeBank, workspace),
@@ -35,6 +43,8 @@ export function App() {
   )
 
   const wrongCount = dashboard.wrongBookCount
+
+  if (theme === 'looseleaf') return <LooseleafApp route={route} onNavigate={setRoute} />
 
   return (
     <div className="app">

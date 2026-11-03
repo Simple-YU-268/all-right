@@ -1,3 +1,4 @@
+import { ThemedButton } from './ThemedButton'
 import { useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Download, Edit, Delete, Upload } from '@icon-park/react'
 import type { Bank } from '../domain/types'
@@ -39,9 +40,9 @@ export function ChapterManager({ bank }: { bank: Bank }) {
   return (
     <div className="chapter-manager">
       <div className="chapter-manager__head">
-        <button type="button" className="btn btn--sm" onClick={() => openEditor({ kind: 'create', category: null })}>
+        <ThemedButton type="button" className="btn btn--sm" onClick={() => openEditor({ kind: 'create', category: null })}>
           <Upload size={13} />导入章节
-        </button>
+        </ThemedButton>
         <span className="t-meta">只修改本题库选中的章节</span>
       </div>
       <details className="chapter-distribution">
@@ -52,22 +53,22 @@ export function ChapterManager({ bank }: { bank: Bank }) {
               <span className="chapter-row__name">{category}</span>
               <span className="t-data">{count} 题</span>
               <span className="chapter-row__actions">
-                <button type="button" className="btn btn--sm" onClick={() => openEditor({ kind: 'import', category })}>
+                <ThemedButton type="button" className="btn btn--sm" onClick={() => openEditor({ kind: 'import', category })}>
                   <Upload size={13} />导入题目
-                </button>
-                <button type="button" className="btn btn--sm" onClick={() => openEditor({ kind: 'edit', category })}>
+                </ThemedButton>
+                <ThemedButton type="button" className="btn btn--sm" onClick={() => openEditor({ kind: 'edit', category })}>
                   <Edit size={13} />编辑章节
-                </button>
-                <button type="button" className="btn btn--sm" aria-label={`导出章节「${category}」`}
+                </ThemedButton>
+                <ThemedButton type="button" className="btn btn--sm" aria-label={`导出章节「${category}」`}
                   onClick={() => downloadJson(`${bank.name}-${category}.json`, {
                     name: `${bank.name} · ${category}`, category,
                     questions: bank.questions.filter((question) => question.category === category),
                   })}>
                   <Download size={13} />导出
-                </button>
-                <button type="button" className="btn btn--sm btn--danger" onClick={() => void remove(category, count)}>
+                </ThemedButton>
+                <ThemedButton type="button" className="btn btn--sm btn--danger" onClick={() => void remove(category, count)}>
                   <Delete size={13} />删除章节
-                </button>
+                </ThemedButton>
               </span>
             </li>
           ))}
@@ -87,7 +88,7 @@ export function ChapterManager({ bank }: { bank: Bank }) {
   )
 }
 
-function ChapterEditor({ bank, editor, onCancel, onSaved }: {
+export function ChapterEditor({ bank, editor, onCancel, onSaved }: {
   bank: Bank; editor: EditorState; onCancel: () => void; onSaved: (name: string) => void
 }) {
   /* 题库里已有的图片：章节编辑只认这些现成的资源，图片本身从题库包来。 */
@@ -195,9 +196,9 @@ function ChapterEditor({ bank, editor, onCancel, onSaved }: {
         </fieldset>
       ) : null}
       <div className="chapter-editor__actions">
-        <button type="button" className="btn btn--sm" onClick={() => inputRef.current?.click()}>
+        <ThemedButton type="button" className="btn btn--sm" onClick={() => inputRef.current?.click()}>
           <Upload size={13} />选择章节 JSON 文件
-        </button>
+        </ThemedButton>
         <input ref={inputRef} type="file" className="sr-only" accept="application/json,.json" aria-label="章节 JSON 文件"
           onChange={(event) => {
             const file = event.target.files?.[0]
@@ -215,8 +216,8 @@ function ChapterEditor({ bank, editor, onCancel, onSaved }: {
         <fieldset className="chapter-editor__sources">
           <legend className="field__label">选择要导入的章节（可多选，默认全选）</legend>
           <div className="chapter-editor__actions">
-            <button type="button" className="btn btn--sm" onClick={() => setSources([...sourceChapters])}>全选</button>
-            <button type="button" className="btn btn--sm" onClick={() => setSources([])}>清空选择</button>
+            <ThemedButton type="button" className="btn btn--sm" onClick={() => setSources([...sourceChapters])}>全选</ThemedButton>
+            <ThemedButton type="button" className="btn btn--sm" onClick={() => setSources([])}>清空选择</ThemedButton>
           </div>
           {sourceChapters.map((category) => (
             <label key={category}>
@@ -257,10 +258,10 @@ function ChapterEditor({ bank, editor, onCancel, onSaved }: {
         编辑或替换时保留未改动题目的记录；修改题干、题型、选项、答案或移除题目会清理对应记录。仅改章名、解析、标签或难度会保留记录。</p>
       {error ? <p className="chapter-editor__error" role="alert">{error}</p> : null}
       <div className="chapter-editor__actions">
-        <button type="submit" className="btn btn--primary btn--sm" disabled={busy || (!batch && !name.trim()) || !questions.length || !!parsed?.issues.length}>
+        <ThemedButton type="submit" className="btn btn--primary btn--sm" disabled={busy || (!batch && !name.trim()) || !questions.length || !!parsed?.issues.length}>
           保存章节
-        </button>
-        <button type="button" className="btn btn--sm" disabled={busy} onClick={onCancel}>取消编辑</button>
+        </ThemedButton>
+        <ThemedButton type="button" className="btn btn--sm" disabled={busy} onClick={onCancel}>取消编辑</ThemedButton>
       </div>
     </form>
   )

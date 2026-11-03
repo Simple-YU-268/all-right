@@ -23,6 +23,10 @@ export interface ActiveSession {
   startedAt: number
   answers: Record<string, { chosen: string[]; correct: boolean; elapsedMs: number }>
   questionStartedAt: number
+  paused?: boolean
+  elapsedMs?: number
+  clockAt?: number
+  questionSignatures?: Record<string, string>
   drafts?: Record<string, string[]>
   elapsedByQuestion?: Record<string, number>
 }
@@ -30,6 +34,31 @@ export interface ActiveSession {
 interface State {
   workspace: Workspace
   session: ActiveSession | null
+}
+
+function restoreSession(workspace: Workspace): ActiveSession | null {
+  const value = workspace.activeSession
+  if (!value || typeof value.id !== 'string' || !['random', 'category', 'wrong'].includes(value.mode) ||
+    !Array.isArray(value.questionIds) || !value.questionIds.length ||
+    !Number.isInteger(value.index) || value.index < 0 || value.index >= value.questionIds.length ||
+    !value.answers || typeof value.answers !== 'object' || Array.isArray(value.answers) ||
+    new Set(value.questionIds).size !== value.questionIds.length) return null
+  const bank = workspace.banks.find(bank => bank.id === value.bankId)
+  if (!bank || value.questionIds.some(id => !bank.questions.some(question => question.id === id))) return null
+  if (Object.keys(value.answers).some(id => !value.questionIds.includes(id))) return null
+  if (value.questionSignatures && value.questionIds.some(id => {
+    const question = bank.questions.find(question => question.id === id)!
+    return value.questionSignatures?.[id] !== JSON.stringify([question.type, question.stem, question.stemBlocks, question.options, question.answer])
+  })) return null
+  if (Object.values(value.answers).some(answer => !answer || !Array.isArray(answer.chosen) ||
+    answer.chosen.some(key => typeof key !== 'string') ||
+    typeof answer.correct !== 'boolean' || !Number.isFinite(answer.elapsedMs) || answer.elapsedMs < 0)) return null
+  if (value.drafts && (typeof value.drafts !== 'object' || Object.values(value.drafts).some(draft =>
+    !Array.isArray(draft) || draft.some(key => typeof key !== 'string')))) return null
+  if (value.elapsedByQuestion && (typeof value.elapsedByQuestion !== 'object' || Object.values(value.elapsedByQuestion).some(time =>
+    !Number.isFinite(time) || time < 0))) return null
+  return { ...value, paused: true, clockAt: Date.now(), questionStartedAt: Date.now(),
+    elapsedMs: Number.isFinite(value.elapsedMs) ? Math.max(0, value.elapsedMs!) : 0 }
 }
 
 /** 图片清单跟着题目走：删掉一个题库，别的题库还在用的图要留下。 */
@@ -63,9 +92,23 @@ type Action =
   | { type: 'startSession'; session: ActiveSession }
   | { type: 'updateSession'; session: ActiveSession }
   | { type: 'endSession' }
+  | { type: 'clockSession'; paused?: boolean }
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
+    case 'clockSession': {
+      if (!state.session) return state
+      const session = state.session
+      const now = Date.now()
+      const delta = session.paused ? 0 : Math.max(0, now - (session.clockAt ?? now))
+      const id = session.questionIds[session.index]
+      return { ...state, session: { ...session, paused: action.paused ?? session.paused, clockAt: now,
+        elapsedMs: (session.elapsedMs ?? 0) + delta,
+        questionStartedAt: now,
+        elapsedByQuestion: { ...session.elapsedByQuestion, [id]: session.answers[id]?.elapsedMs ??
+          (session.elapsedByQuestion?.[id] ?? 0) + (session.paused ? 0 : Math.max(0, now - session.questionStartedAt)) },
+      } }
+    }
     case 'saveChapter':
     case 'importChapters':
     case 'deleteChapter': {
@@ -130,6 +173,7 @@ function reducer(state: State, action: Action): State {
       return { ...state, workspace: { ...state.workspace, activeBankId: action.bankId } }
     case 'recordAttempt': {
       const { attempt } = action
+      if (state.workspace.attempts.some(existing => existing.id === attempt.id)) return state
       const prev = state.workspace.stats[attempt.questionId]
       const consecutiveCorrect = attempt.correct ? (prev?.consecutiveCorrect ?? 0) + 1 : 0
       return {
@@ -188,7 +232,8 @@ function reducer(state: State, action: Action): State {
     case 'replaceWorkspace':
       return { ...state, workspace: action.workspace, session: null }
     case 'startSession':
-      return { ...state, session: action.session }
+      if (state.session) return state
+      return { ...state, session: action.session, workspace: { ...state.workspace, activeBankId: action.session.bankId } }
     case 'updateSession':
       return { ...state, session: action.session }
     case 'endSession':
@@ -216,25 +261,33 @@ export interface AppApi {
   startSession: (session: ActiveSession) => void
   updateSession: (session: ActiveSession) => void
   endSession: () => void
+  clockSession: (paused?: boolean) => void
 }
 
 const AppContext = createContext<AppApi | null>(null)
 
 export function AppProvider({ children, initialWorkspace }: { children: ReactNode; initialWorkspace: Workspace }) {
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null)
   const [storageError, setStorageError] = useState<string | null>(null)
   const [state, dispatch] = useReducer(reducer, undefined, () => ({
     workspace: initialWorkspace,
-    session: null,
+    session: restoreSession(initialWorkspace),
   }))
 
   useEffect(() => {
     let active = true
-    void saveWorkspace(state.workspace).then(
+    void saveWorkspace({ ...state.workspace, activeSession: state.session }).then(
       () => { if (active) setStorageError(null) },
       (error: unknown) => { if (active) setStorageError(`保存失败，请先导出备份：${String(error)}`) },
     )
     return () => { active = false }
-  }, [state.workspace])
+  }, [state.workspace, state.session])
+
+  useEffect(() => {
+    const pause = () => dispatch({ type: 'clockSession', paused: true })
+    window.addEventListener('pagehide', pause)
+    return () => window.removeEventListener('pagehide', pause)
+  }, [])
 
   const activeBank = useMemo(
     () => state.workspace.banks.find((b) => b.id === state.workspace.activeBankId) ?? null,
@@ -255,6 +308,9 @@ export function AppProvider({ children, initialWorkspace }: { children: ReactNod
       renameBank: (bankId, name) => dispatch({ type: 'renameBank', bankId, name }),
       saveChapter: (change) => {
         const result = saveChapter(state.workspace, change)
+        if (state.session?.bankId === result.bankId && state.session.questionIds.some(id => result.invalidatedIds.has(id))) {
+          setSessionNotice('题目内容已变更，未完成练习已结束。未受影响的作答记录仍保留。')
+        }
         dispatch({ type: 'saveChapter', change })
         void pruneAssetsExcept(referencedAssetIds(result.workspace))
       },
@@ -265,6 +321,9 @@ export function AppProvider({ children, initialWorkspace }: { children: ReactNod
       },
       deleteChapter: (bankId, category) => {
         const result = deleteChapter(state.workspace, bankId, category)
+        if (state.session?.bankId === bankId && state.session.questionIds.some(id => result.invalidatedIds.has(id))) {
+          setSessionNotice('练习中的题目已删除，未完成练习已结束。其他作答记录仍保留。')
+        }
         dispatch({ type: 'deleteChapter', bankId, category })
         void pruneAssetsExcept(referencedAssetIds(result.workspace))
       },
@@ -279,11 +338,14 @@ export function AppProvider({ children, initialWorkspace }: { children: ReactNod
       startSession: (session) => dispatch({ type: 'startSession', session }),
       updateSession: (session) => dispatch({ type: 'updateSession', session }),
       endSession: () => dispatch({ type: 'endSession' }),
+      clockSession: (paused) => dispatch({ type: 'clockSession', paused }),
     }),
     [state.workspace, state.session, activeBank],
   )
 
   return <AppContext.Provider value={api}>
+    {sessionNotice ? <div className="storage-error" role="status">{sessionNotice}<button type="button" onClick={() => setSessionNotice(null)}>关闭</button></div> : null}
+    {initialWorkspace.activeSession && !restoreSession(initialWorkspace) ? <div className="storage-error" role="status">未完成练习已失效，题库可能已变更。有效作答记录仍保留，可重新开始练习。</div> : null}
     {storageError ? <div className="storage-error" role="alert">{storageError}</div> : null}
     {children}
   </AppContext.Provider>

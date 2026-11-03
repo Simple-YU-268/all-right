@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react'
+import { ThemedButton } from './ThemedButton'
+import { useMemo, useRef, useState } from 'react'
 import { ArrowRight, Robot as Bot, Download, FileCode as FileJson, Delete as Trash2, Upload } from '@icon-park/react'
 import { useApp } from '../domain/store'
 import { readBankFile, type ParsedBank } from '../domain/parseBank'
@@ -14,6 +15,7 @@ import { CopyButton, EmptyState } from './bits'
 import { confirmAction } from '../domain/shell'
 import { ChapterGuide } from './ChapterGuide'
 import { ChapterManager } from './ChapterManager'
+import { QuestionSearch } from './QuestionSearch'
 import { ChapterDistribution, PreviewIssues, PreviewStats } from './ImportPreview'
 
 interface PendingImport {
@@ -32,6 +34,15 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const [pasted, setPasted] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const duplicates = useMemo(() => {
+    const existing = workspace.banks.flatMap(bank => bank.questions)
+    const ids = new Set(existing.map(question => question.id))
+    const stems = new Set(existing.map(question => question.stem.replace(/\s/g, '')))
+    return {
+      ids: pending?.parsed.valid.filter(question => ids.has(question.id)).length ?? 0,
+      stems: pending?.parsed.valid.filter(question => stems.has(question.stem.replace(/\s/g, ''))).length ?? 0,
+    }
+  }, [workspace.banks, pending])
 
   const acceptFile = async (file: File) => {
     setError(null)
@@ -120,7 +131,7 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
           <p className="topbar__sub">{workspace.banks.length} 个题库 · 数据保存在本机</p>
         </div>
         <div className="topbar__actions">
-          <button
+          <ThemedButton
             type="button"
             className="btn btn--sm"
             onClick={() => {
@@ -132,14 +143,14 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
           >
             <Download size={14} strokeWidth={2} />
             导出备份
-          </button>
+          </ThemedButton>
         </div>
       </header>
 
       <div className="content">
         <div className="content__inner">
           <div className="banks">
-            <section className="panel">
+            <section className="panel bank-import">
               <header className="panel__head">
                 <h2 className="panel__title">导入 JSON 题库</h2>
                 <p className="panel__hint">题库结构见下方说明，支持多种字段写法</p>
@@ -169,27 +180,27 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                     拖进来一样能导入。
                   </p>
                   <div className="dropzone__actions">
-                    <button type="button" className="btn btn--primary" onClick={() => inputRef.current?.click()}>
+                    <ThemedButton type="button" className="btn btn--primary" onClick={() => inputRef.current?.click()}>
                       <Upload size={14} strokeWidth={2} />
                       选择 JSON 文件
-                    </button>
-                    <button type="button" className="btn" onClick={() => setPasteOpen((v) => !v)}>
+                    </ThemedButton>
+                    <ThemedButton type="button" className="btn" onClick={() => setPasteOpen((v) => !v)}>
                       {pasteOpen ? '收起' : '粘贴 JSON'}
-                    </button>
-                    <button type="button" className="btn" onClick={() => void loadSample()}>
+                    </ThemedButton>
+                    <ThemedButton type="button" className="btn" onClick={() => void loadSample()}>
                       载入示例题库
-                    </button>
-                    <button type="button" className="btn" onClick={() => void loadImageSample()}>
+                    </ThemedButton>
+                    <ThemedButton type="button" className="btn" onClick={() => void loadImageSample()}>
                       载入图片题示例
-                    </button>
-                    <button
+                    </ThemedButton>
+                    <ThemedButton
                       type="button"
                       className="btn btn--ghost"
                       onClick={() => downloadJson('题库模板.json', TEMPLATE)}
                     >
                       <Download size={14} strokeWidth={2} />
                       下载模板
-                    </button>
+                    </ThemedButton>
                   </div>
                   <input
                     ref={inputRef}
@@ -217,7 +228,7 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                       onChange={(e) => setPasted(e.target.value)}
                     />
                     <div>
-                      <button
+                      <ThemedButton
                         type="button"
                         className="btn btn--sm"
                         onClick={() => setPending({
@@ -228,7 +239,7 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                         disabled={!pasted.trim()}
                       >
                         解析这段 JSON
-                      </button>
+                      </ThemedButton>
                     </div>
                   </div>
                 ) : null}
@@ -248,23 +259,24 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                   <span className="chip chip--blue">{pending.parsed.name}</span>
                 </header>
                 <PreviewStats parsed={pending.parsed} imageCount={pending.files.size} />
+                <p className="t-meta">与已有题库比较：{duplicates.ids} 道题号相同；{duplicates.stems} 道题干相似。导入为独立题库，不覆盖已有题目。</p>
 
                 {pending.parsed.valid.length > 0 ? <ChapterDistribution questions={pending.parsed.valid} /> : null}
 
                 <PreviewIssues parsed={pending.parsed} />
 
                 <div className="preview__actions">
-                  <button
+                  <ThemedButton
                     type="button"
                     className="btn btn--primary"
                     onClick={() => void commit()}
                     disabled={!pending.parsed.valid.length || busy}
                   >
                     导入 {pending.parsed.valid.length} 题
-                  </button>
-                  <button type="button" className="btn btn--ghost" onClick={() => setPending(null)}>
+                  </ThemedButton>
+                  <ThemedButton type="button" className="btn btn--ghost" onClick={() => setPending(null)}>
                     取消
-                  </button>
+                  </ThemedButton>
                   {pending.parsed.issues.length > 0 && pending.parsed.valid.length > 0 ? (
                     <span className="t-meta" style={{ marginLeft: 'auto', alignSelf: 'center' }}>
                       有问题的题目会被跳过，其余照常导入
@@ -274,7 +286,7 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
               </section>
             ) : null}
 
-            <section className="panel">
+            <section className="panel bank-catalog">
               <header className="panel__head">
                 <h2 className="panel__title">我的题库</h2>
               </header>
@@ -302,11 +314,11 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                           {current ? (
                             <span className="chip chip--blue">当前</span>
                           ) : (
-                            <button type="button" className="btn btn--sm" onClick={() => setActiveBank(bank.id)}>
+                            <ThemedButton type="button" className="btn btn--sm" onClick={() => setActiveBank(bank.id)}>
                               切到
-                            </button>
+                            </ThemedButton>
                           )}
-                          <button
+                          <ThemedButton
                             type="button"
                             className="btn btn--sm"
                             aria-label={`导出题库「${bank.name}」`}
@@ -318,8 +330,8 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                             }}
                           >
                             <Download size={13} strokeWidth={2} />
-                          </button>
-                          <button
+                          </ThemedButton>
+                          <ThemedButton
                             type="button"
                             className="btn btn--sm btn--danger"
                             aria-label={`删除题库「${bank.name}」`}
@@ -330,7 +342,7 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                             }}
                           >
                             <Trash2 size={13} strokeWidth={2} />
-                          </button>
+                          </ThemedButton>
                         </span>
                         <ChapterManager bank={bank} />
                       </div>
@@ -340,13 +352,14 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
               </div>
             </section>
 
-            <section className="panel">
+            <QuestionSearch key={activeBank?.id} onNavigate={onNavigate} />
+            <section className="panel bank-guide">
               <div className="panel__body">
                 <ChapterGuide />
               </div>
             </section>
 
-            <section className="panel">
+            <section className="panel bank-ai">
               <header className="panel__head">
                 <h2 className="panel__title">让 AI 助手帮你转译题库</h2>
                 <p className="panel__hint">什么格式的题库都能转成这里能读的样子</p>
@@ -363,10 +376,10 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                       <CopyButton text={AI_PROMPT} className="btn btn--primary btn--sm">
                         复制提示词
                       </CopyButton>
-                      <button type="button" className="btn btn--sm btn--ghost" onClick={() => onNavigate('settings')}>
+                      <ThemedButton type="button" className="btn btn--sm btn--ghost" onClick={() => onNavigate('settings')}>
                         查看 JSON 模板
                         <ArrowRight size={13} strokeWidth={2} />
-                      </button>
+                      </ThemedButton>
                     </div>
                     <p className="t-meta settings__note">
                       <Bot size={13} strokeWidth={2} style={{ verticalAlign: '-2px', marginRight: 5 }} />

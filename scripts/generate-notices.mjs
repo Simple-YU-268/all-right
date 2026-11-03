@@ -18,6 +18,7 @@ for (const [location, metadata] of Object.entries(lock.packages).sort(([a], [b])
   sections.push(`## ${pkg.name} ${pkg.version}\n\nLicense: ${typeof pkg.license === 'string' ? pkg.license : 'See upstream package'}\nSource: https://www.npmjs.com/package/${pkg.name}/v/${pkg.version}\n\n${texts.join('\n\n') || 'No top-level license file shipped in this package; consult the source link.'}`)
 }
 const header = '# Third-Party Notices\n\nGenerated from package-lock.json. Includes installed production npm dependencies and their bundled license/notice files. Development tools, Rust dependencies, fonts and the Bun runtime are tracked separately in docs/open-source.md.\n\n'
+sections.push(`## Looseleaf / Kevin Sans\n\n${await fs.readFile('src/vendor/looseleaf/SOURCE.md', 'utf8')}\n${await fs.readFile('src/vendor/looseleaf/LICENSE', 'utf8')}`)
 await fs.writeFile('THIRD_PARTY_NOTICES.md', header + sections.join('\n\n---\n\n') + '\n')
 await fs.mkdir('src-tauri/resources', { recursive: true })
 await fs.copyFile('THIRD_PARTY_NOTICES.md', 'src-tauri/resources/THIRD_PARTY_NOTICES.md')

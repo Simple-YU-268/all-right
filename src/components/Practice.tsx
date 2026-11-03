@@ -1,3 +1,4 @@
+import { ThemedButton } from './ThemedButton'
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, Check, Left as ChevronLeft, Help as CircleHelp, Time as Clock, CloseSmall as X, BookOpen } from '@icon-park/react'
 import { useApp } from '../domain/store'
@@ -11,6 +12,11 @@ import { EmptyState, MasteryMark, Segmented } from './bits'
 import { MediaFigure, QuestionContent, splitOptionBlocks, useMissingAssets } from './QuestionContent'
 import { MathText } from './MathText'
 import { masteryOf } from '../domain/stats'
+import { useTheme } from '../domain/theme'
+import { StudyPaper } from './StudyPaper'
+import { Paper } from '../vendor/looseleaf/ui/paper'
+import { Progress } from '../vendor/looseleaf/ui/progress'
+import { Button } from '../vendor/looseleaf/ui/button'
 
 const COUNTS = [
   { value: 10, label: '10 题' },
@@ -25,7 +31,7 @@ const MODE_LABEL: Record<SessionMode, string> = {
   wrong: '错题重刷',
 }
 
-/** 答对了停这一会儿，好让人看见石绿的勾；答错了不翻页，先把解析读完。 */
+/** 留出短暂的批改反馈，再自动进入下一题。 */
 const AUTO_ADVANCE_MS = 800
 
 interface Verdict {
@@ -50,17 +56,16 @@ function buildSummary(
   endedAt: number,
 ): PracticeSummary | null {
   const results = Object.values(session.answers)
-  if (results.length !== questions.length) return null
   const correct = results.filter((answer) => answer.correct).length
   return {
-    total: questions.length,
+    total: results.length,
     correct,
-    wrong: questions.length - correct,
-    elapsedMs: endedAt - session.startedAt,
+    wrong: results.length - correct,
+    elapsedMs: (session.elapsedMs ?? 0) + (session.paused ? 0 : Math.max(0, endedAt - (session.clockAt ?? endedAt))),
     mode: session.mode,
     category: session.category,
     wrongQuestions: questions
-      .filter((question) => !session.answers[question.id].correct)
+      .filter((question) => session.answers[question.id] && !session.answers[question.id].correct)
       .map((question) => ({
         question,
         chosen: session.answers[question.id].chosen,
@@ -70,12 +75,25 @@ function buildSummary(
 }
 
 export function Practice({ onNavigate }: { onNavigate: (route: Route) => void }) {
-  const { session, activeBank, workspace, updateSession, endSession, recordAttempt } = useApp()
+  const [theme] = useTheme()
+  const [paletteOpen, setPaletteOpen] = useState(() => window.innerWidth > 920)
+  const { session, workspace, updateSession, endSession, recordAttempt, clockSession, setActiveBank } = useApp()
+  const activeBank = workspace.banks.find(bank => bank.id === (session?.bankId ?? workspace.activeBankId)) ?? null
   const [selected, setSelected] = useState<string[]>([])
   const [summary, setSummary] = useState<PracticeSummary | null>(null)
   const [verdict, setVerdict] = useState<Verdict | null>(null)
   const [pending, setPending] = useState<{ target: number; deadline: number } | null>(null)
   const [, refreshClock] = useState(0)
+
+  useEffect(() => {
+    const timer = window.setInterval(() => clockSession(), 1000)
+    const visibility = () => { if (document.hidden) clockSession(true) }
+    document.addEventListener('visibilitychange', visibility)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', visibility)
+    }
+  }, [])
 
   useEffect(() => {
     if (!session) return
@@ -120,7 +138,7 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
 
   /* 提交之后先停一会儿给批改留位置，再自己翻到下一道没答过的题 */
   useEffect(() => {
-    if (!pending || !session) return
+    if (!pending || !session || session.paused) return
     const target = pending.target
     const jump = () => {
       setPending(null)
@@ -152,12 +170,21 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
     return <PracticeStart onNavigate={onNavigate} />
   }
 
+  if (session.paused) return <div className="content"><div className="content__inner"><StudyPaper className="practice">
+    <h1 className="pagehead__title">继续未完成的练习</h1>
+    <p>{activeBank.name} · 已答 {Object.keys(session.answers).length} / {questions.length} 题</p>
+    <div className="practice__answer-actions">
+      <ThemedButton className="btn btn--primary" onClick={() => { setActiveBank(session.bankId); clockSession(false) }}>继续练习</ThemedButton>
+      <ThemedButton className="btn" onClick={() => { setSummary(buildSummary(session, questions, Date.now())); endSession() }}>结束并结算</ThemedButton>
+    </div>
+  </StudyPaper></div></div>
+
   const answered = session.answers[current.id]
   const stat = workspace.stats[current.id]
   const mastery = masteryOf(stat)
   const answeredCount = Object.keys(session.answers).length
   const correctCount = Object.values(session.answers).filter((a) => a.correct).length
-  const elapsed = Date.now() - session.startedAt
+  const elapsed = (session.elapsedMs ?? 0) + Math.max(0, Date.now() - (session.clockAt ?? Date.now()))
   const questionElapsed = answered?.elapsedMs ??
     (session.elapsedByQuestion?.[current.id] ?? 0) + Math.max(0, Date.now() - session.questionStartedAt)
   const remaining = pending ? Math.max(0, pending.deadline - Date.now()) : 0
@@ -179,11 +206,11 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
 
   const toggle = (key: string) => {
     if (revealed) return
-    if (current.type === 'multiple') {
-      setSelected((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]))
-    } else {
-      setSelected([key])
-    }
+    const next = current.type === 'multiple'
+      ? selected.includes(key) ? selected.filter(k => k !== key) : [...selected, key]
+      : [key]
+    setSelected(next)
+    updateSession({ ...session, drafts: { ...session.drafts, [current.id]: next } })
   }
 
   /** 往后找下一道没答过的题；全答完了就回 -1。 */
@@ -213,7 +240,7 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
     const correct = isAnswerCorrect(current, selected)
     const elapsedMs = (session.elapsedByQuestion?.[current.id] ?? 0) + Math.max(0, now - session.questionStartedAt)
     recordAttempt({
-      id: newId('a'),
+      id: `${session.id}:${current.id}`,
       bankId: session.bankId,
       questionId: current.id,
       chosen: selected,
@@ -227,13 +254,7 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
       elapsedByQuestion: { ...session.elapsedByQuestion, [current.id]: elapsedMs },
     }
     updateSession(completed)
-    /* 答错了留在原地：批改、正确答案、解析都在这一屏里 */
-    if (!correct) {
-      setPending(null)
-      setVerdict(null)
-      return
-    }
-    /* 答对了把解析留个入口，自己翻到下一道没答过的题 */
+    /* 保存上一题的解析入口，再翻到下一道未答题。 */
     setVerdict({
       questionId: current.id,
       hasExplanation: !!(current.explanation || current.explanationBlocks?.length),
@@ -243,7 +264,7 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
       return !completed.answers[questions[index].id]
     })
     const target = offset === -1 ? -1 : (session.index + 1 + offset) % questions.length
-    setPending({ target, deadline: now + AUTO_ADVANCE_MS })
+    setPending(correct ? { target, deadline: now + AUTO_ADVANCE_MS } : null)
   }
 
   const goNext = () => {
@@ -279,17 +300,19 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
           </p>
         </div>
         <div className="topbar__actions">
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => onNavigate('dashboard')}>
+          <ThemedButton type="button" className="btn btn--sm" onClick={finishNow}>结束并结算</ThemedButton>
+          <ThemedButton type="button" className="btn btn--ghost btn--sm" onClick={() => onNavigate('dashboard')}>
             <ChevronLeft size={14} strokeWidth={2} />
             返回看板
-          </button>
+          </ThemedButton>
         </div>
       </header>
 
       <div className="content">
         <div className="content__inner">
-          <div className="practice">
-            <div className="practice__top">
+          <div className={theme === 'looseleaf' ? 'practice-layout' : undefined}>
+          <StudyPaper className="practice">
+            {theme !== 'looseleaf' ? <div className="practice__top">
               <p className="practice__counter">
                 第 {session.index + 1} / {questions.length} 题
               </p>
@@ -307,25 +330,25 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
                   本次练习 <b data-testid="session-time">{formatDuration(elapsed)}</b>
                 </span>
               </div>
-            </div>
+            </div> : null}
 
             {verdict && showVerdict ? (
-              <div className="practice__verdict practice__verdict--right" role="status">
+              <div className={`practice__verdict practice__verdict--${session.answers[verdict.questionId]?.correct ? 'right' : 'wrong'}`} role="status">
                 <span className="practice__verdict-mark" aria-hidden="true">
-                  <Check size={14} strokeWidth={2.6} />
+                  {session.answers[verdict.questionId]?.correct ? <Check size={14} strokeWidth={2.6} /> : <X size={14} strokeWidth={2.6} />}
                 </span>
-                <span className="practice__verdict-title">上一题答对了</span>
-                <button
+                <span className="practice__verdict-title">{session.answers[verdict.questionId]?.correct ? '上一题答对了' : '上一题答错了，已收进错题本'}</span>
+                <ThemedButton
                   type="button"
                   className="practice__verdict-link"
                   onClick={() => jumpTo(verdictIndex)}
                 >
                   看解析
-                </button>
+                </ThemedButton>
               </div>
             ) : null}
 
-            <div className="dotrail" role="img" aria-label={`共 ${questions.length} 题，已答 ${answeredCount} 题`}>
+            {theme !== 'looseleaf' ? <div className="dotrail" role="img" aria-label={`共 ${questions.length} 题，已答 ${answeredCount} 题`}>
               {questions.map((q, i) => {
                 const res = session.answers[q.id]
                 const cls = res
@@ -337,7 +360,7 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
                     : 'dotrail__dot'
                 return <span key={q.id} className={cls} />
               })}
-            </div>
+            </div> : null}
 
             <div className="practice__meta">
               <span className="chip chip--blue">{current.category}</span>
@@ -368,7 +391,7 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
                 if (revealed && isChosen) cls += ' option--picked'
                 return (
                   <div className={cls} key={opt.key}>
-                    <button
+                    <ThemedButton
                       type="button"
                       className="option__pick"
                       onClick={() => toggle(opt.key)}
@@ -391,7 +414,7 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
                       {revealed && !isAnswer && isChosen ? (
                         <X className="option__mark" size={17} strokeWidth={2.6} aria-hidden="true" />
                       ) : null}
-                    </button>
+                    </ThemedButton>
                     {media.length ? (
                       <div className="option__media">
                         {media.map((block, index) => (
@@ -467,16 +490,16 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
             </p>
 
             <div className="practice__actions practice__answer-actions">
-              <button
+              <ThemedButton
                 type="button"
                 className="btn btn--ghost btn--sm practice__step"
                 disabled={session.index === 0}
                 onClick={() => jumpTo(session.index - 1)}
               >
                 <ChevronLeft size={14} strokeWidth={2} />上一题
-              </button>
+              </ThemedButton>
               {revealed ? (
-                <button
+                <ThemedButton
                   type="button"
                   className="btn btn--primary btn--lg practice__submit"
                   onClick={goNext}
@@ -485,19 +508,19 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
                 >
                   {nextLabel}
                   <ArrowRight size={16} strokeWidth={2} />
-                </button>
+                </ThemedButton>
               ) : (
-                <button
+                <ThemedButton
                   type="button"
                   className="btn btn--primary btn--lg practice__submit"
                   onClick={submit}
                   disabled={!selected.length || missingImages}
                 >
                   确认答案
-                </button>
+                </ThemedButton>
               )}
               {!revealed ? (
-                <button
+                <ThemedButton
                   type="button"
                   className="btn btn--ghost btn--sm practice__step"
                   onClick={goNext}
@@ -505,9 +528,28 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
                   title={nextDisabled ? `还有 ${questions.length - answeredCount} 题未提交` : undefined}
                 >
                   下一题<ArrowRight size={14} strokeWidth={2} />
-                </button>
+                </ThemedButton>
               ) : null}
             </div>
+          </StudyPaper>
+          {theme === 'looseleaf' ? <Paper as="aside" stock="pad" rules="none" tilt={false} className="answer-sheet">
+            <h2>本次练习</h2>
+            <div className="answer-sheet__summary"><p className="practice__counter answer-sheet__counter">第 {session.index + 1} / {questions.length} 题</p><Progress value={answeredCount} max={questions.length} tone="blue" size="sm" aria-label="本次已答进度" /></div>
+            <div className="answer-sheet__timers">
+              <div><span>本题用时</span><b data-testid="question-time">{formatDuration(questionElapsed)}</b></div>
+              <div><span>本次练习</span><b data-testid="session-time">{formatDuration(elapsed)}</b></div>
+              <div><span>已答</span><b>{answeredCount} 题</b></div>
+              <div><span>答对</span><b>{correctCount} 题</b></div>
+            </div>
+            <details open={paletteOpen} onToggle={event => setPaletteOpen(event.currentTarget.open)}><summary>答题卡</summary>
+              <div className="answer-sheet__grid">{questions.map((question, index) => {
+                const answer = session.answers[question.id]
+                const currentQuestion = index === session.index
+                return <Button key={question.id} size="icon-sm" variant={currentQuestion ? 'default' : answer ? 'secondary' : 'outline'} className={answer ? answer.correct ? 'answer-right' : 'answer-wrong' : ''} aria-current={currentQuestion ? 'step' : undefined} aria-label={`第 ${index + 1} 题，${answer ? answer.correct ? '答对' : '答错' : '未答'}`} onClick={() => jumpTo(index)}>{index + 1}</Button>
+              })}</div>
+            </details>
+            <p className="answer-sheet__legend">橙色 · 当前题　绿色 · 答对<br />红色 · 答错　空白 · 未答</p>
+          </Paper> : null}
           </div>
         </div>
       </div>
@@ -547,16 +589,16 @@ function Summary({ summary, onNavigate }: { summary: PracticeSummary; onNavigate
           </p>
         </div>
         <div className="topbar__actions">
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => onNavigate('dashboard')}>
+          <ThemedButton type="button" className="btn btn--ghost btn--sm" onClick={() => onNavigate('dashboard')}>
             <ChevronLeft size={14} strokeWidth={2} />
             返回看板
-          </button>
+          </ThemedButton>
         </div>
       </header>
 
       <div className="content">
         <div className="content__inner">
-          <div className="practice">
+          <StudyPaper className="practice">
             <div className="summary summary--flip">
               <div className="summary__body">
                 <p className="t-label">正确率</p>
@@ -569,11 +611,11 @@ function Summary({ summary, onNavigate }: { summary: PracticeSummary; onNavigate
 
                 <div className="summary__grid">
                   <div className="summary__cell">
-                    <p className="t-label">答对</p>
+                    <p className="t-label">{summary.mode === 'wrong' ? '已解决' : '答对'}</p>
                     <p className="summary__value">{summary.correct}</p>
                   </div>
                   <div className="summary__cell">
-                    <p className="t-label">答错</p>
+                    <p className="t-label">{summary.mode === 'wrong' ? '仍需复习' : '答错'}</p>
                     <p className="summary__value">{summary.wrong}</p>
                   </div>
                   <div className="summary__cell">
@@ -584,16 +626,16 @@ function Summary({ summary, onNavigate }: { summary: PracticeSummary; onNavigate
                 </div>
 
                 <div className="summary__actions">
-                  <button type="button" className="btn btn--primary" onClick={repeat}>
+                  <ThemedButton type="button" className="btn btn--primary" onClick={repeat}>
                     再来一组
-                  </button>
-                  <button type="button" className="btn" onClick={() => onNavigate('dashboard')}>
+                  </ThemedButton>
+                  <ThemedButton type="button" className="btn" onClick={() => onNavigate('dashboard')}>
                     去看板
-                  </button>
+                  </ThemedButton>
                   {summary.wrong > 0 ? (
-                    <button type="button" className="btn" onClick={() => onNavigate('wrong')}>
+                    <ThemedButton type="button" className="btn" onClick={() => onNavigate('wrong')}>
                       重刷错题
-                    </button>
+                    </ThemedButton>
                   ) : null}
                 </div>
               </div>
@@ -640,7 +682,7 @@ function Summary({ summary, onNavigate }: { summary: PracticeSummary; onNavigate
                 <EmptyState title="这组全对" text="错题本是空的。换个分类继续练，或者去看板看看还有哪些知识点没碰过。" />
               </div>
             )}
-          </div>
+          </StudyPaper>
         </div>
       </div>
     </>
@@ -688,9 +730,9 @@ function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
           <div className="content__inner">
             <div className="panel">
               <EmptyState title="还没有题库" text="先导入一份 JSON 题库，就能开始刷题了。">
-                <button type="button" className="btn btn--primary" onClick={() => onNavigate('banks')}>
+                <ThemedButton type="button" className="btn btn--primary" onClick={() => onNavigate('banks')}>
                   去导入题库
-                </button>
+                </ThemedButton>
               </EmptyState>
             </div>
           </div>
@@ -734,7 +776,7 @@ function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
 
       <div className="content">
         <div className="content__inner">
-          <div className="practice">
+          <StudyPaper className="practice">
             <div className="panel">
               <div className="panel__body">
                 <p className="t-label">这次怎么练</p>
@@ -754,7 +796,7 @@ function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
                       {categories.map(({ name, total, practiced }, index) => {
                         const chapterSize = count === 0 ? total : Math.min(count, total)
                         return (
-                          <button
+                          <ThemedButton
                             key={name}
                             type="button"
                             className="chapter-entry"
@@ -767,7 +809,7 @@ function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
                               <span className="chapter-entry__meta">共 {total} 题 · 已练 {practiced} 题</span>
                             </span>
                             <span className="chapter-entry__action">练 {chapterSize} 题<ArrowRight size={16} aria-hidden="true" /></span>
-                          </button>
+                          </ThemedButton>
                         )
                       })}
                     </div>
@@ -784,12 +826,12 @@ function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
                 </p>
 
                 <div className="practice__actions">
-                  {mode !== 'category' ? <button type="button" className="btn btn--primary btn--lg" onClick={() => begin()} disabled={!canStart}>
+                  {mode !== 'category' ? <ThemedButton type="button" className="btn btn--primary btn--lg" onClick={() => begin()} disabled={!canStart}>
                     开始练习（{size} 题）
-                  </button> : null}
-                  <button type="button" className="btn btn--ghost" onClick={() => onNavigate('dashboard')}>
+                  </ThemedButton> : null}
+                  <ThemedButton type="button" className="btn btn--ghost" onClick={() => onNavigate('dashboard')}>
                     返回看板
-                  </button>
+                  </ThemedButton>
                 </div>
               </div>
             </div>
@@ -813,7 +855,7 @@ function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
                 </ul>
               </div>
             </div>
-          </div>
+          </StudyPaper>
         </div>
       </div>
     </>

@@ -1,0 +1,44 @@
+import assert from 'node:assert/strict'
+import { chromium } from 'playwright-core'
+
+const browser = await chromium.launch({ executablePath: process.env.EDGE_PATH ?? 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe', headless: true })
+try {
+  for (const theme of ['classic', 'looseleaf']) {
+    const context = await browser.newContext()
+    const page = await context.newPage()
+    await page.goto(process.env.ALLRIGHT_TEST_URL ?? 'http://127.0.0.1:5180/')
+    await page.evaluate(theme => {
+      const questions = [1, 2, 3].map(id => ({ id: `q${id}`, category: `章${id}`, type: 'single', stem: `检索测试 ${id}`, options: [{ key: 'A', text: `选项关键字${id}` }, { key: 'B', text: '错误' }], answer: ['A'], explanation: '测试解析', tags: ['标签'], difficulty: 1 }))
+      const stats = Object.fromEntries(questions.map((q, i) => [q.id, { questionId: q.id, attempts: 3, correctCount: i === 2 ? 1 : 0, wrongCount: i === 0 ? 2 : 1, consecutiveCorrect: i === 2 ? 1 : 0, lastAt: 100 + i, totalMs: 0 }]))
+      localStorage.setItem('allright.theme.v1', theme)
+      localStorage.setItem('allright.workspace.v1', JSON.stringify({ version: 2, banks: [{ id: 'b', name: '功能测试', questions, importedAt: 1 }], activeBankId: 'b', stats, attempts: [], sessions: [], assets: {} }))
+    }, theme)
+    await page.reload()
+    const nav = async name => theme === 'classic' ? page.locator('.rail__item').filter({ hasText: name }).click() : page.locator('.study-nav').getByRole('tab', { name, exact: true }).click()
+    await nav('错题本')
+    assert.equal(await page.locator('.wrongrow').count(), 2)
+    await page.getByLabel('复习范围').selectOption('repeat')
+    assert.equal(await page.locator('.wrongrow').count(), 1)
+    await page.getByLabel('复习范围').selectOption('history')
+    assert.equal(await page.locator('.wrongrow').count(), 3)
+    await page.getByLabel('选择题目 q1', { exact: true }).check()
+    await page.locator('#wrong-cat').selectOption('章2')
+    await page.getByRole('button', { name: /重刷 1 题/ }).click()
+    assert.match(await page.locator('.t-stem').innerText(), /检索测试 2/)
+    await page.getByRole('button', { name: '结束并结算', exact: true }).click()
+    await nav('题库')
+    await page.getByLabel('搜索题目').fill('选项关键字3')
+    assert.equal(await page.locator('.question-search details').count(), 1)
+    await page.getByRole('button', { name: '练习检索结果', exact: true }).click()
+    assert.match(await page.locator('.t-stem').innerText(), /检索测试 3/)
+    await page.getByRole('button', { name: '结束并结算', exact: true }).click()
+    await nav('题库')
+    await page.setViewportSize({ width: 390, height: 844 })
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+    await page.screenshot({ path: `.impeccable/review/search-${theme}.png`, fullPage: true })
+    await context.close()
+  }
+  console.log('PASS both themes: review scopes, filtered selection, search and exact result practice, mobile width')
+} finally {
+  await browser.close()
+}
