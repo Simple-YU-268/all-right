@@ -162,15 +162,27 @@ fn list_assets(app: AppHandle) -> Result<Vec<String>, String> {
     Ok(ids)
 }
 
+// Node's entry-point resolution cannot handle Windows verbatim script paths.
+fn process_path(path: PathBuf) -> PathBuf {
+    let text = path.to_string_lossy();
+    if let Some(unc) = text.strip_prefix(r"\\?\UNC\") {
+        return PathBuf::from(format!(r"\\{unc}"));
+    }
+    if let Some(disk) = text.strip_prefix(r"\\?\") {
+        return PathBuf::from(disk);
+    }
+    path
+}
+
 #[tauri::command]
 fn get_mcp_config(app: AppHandle) -> Result<serde_json::Value, String> {
-    let executable = app.path().resource_dir().map_err(|error| error.to_string())?
+    let executable = process_path(app.path().resource_dir().map_err(|error| error.to_string())?)
         .join("resources").join("node.exe");
     let script = executable.parent().ok_or("MCP 目录无效")?.join("mcp-server.mjs");
     if !executable.is_file() || !script.is_file() {
         return Err("未找到内置 MCP，请使用完整安装版或先构建 MCP 程序。".into());
     }
-    let output = app.path().app_data_dir().map_err(|error| error.to_string())?.join("mcp-output");
+    let output = process_path(app.path().app_data_dir().map_err(|error| error.to_string())?).join("mcp-output");
     fs::create_dir_all(&output).map_err(|error| error.to_string())?;
     Ok(serde_json::json!({ "mcpServers": { "allright": {
         "command": executable.to_string_lossy(),
@@ -255,7 +267,7 @@ fn read_mcp_output(app: AppHandle, name: String) -> Result<String, String> {
 
 #[tauri::command]
 async fn check_mcp(app: AppHandle) -> Result<String, String> {
-    let directory = app.path().resource_dir().map_err(|e| e.to_string())?.join("resources");
+    let directory = process_path(app.path().resource_dir().map_err(|e| e.to_string())?).join("resources");
     for name in ["node.exe", "mcp-server.mjs", "mcp-selftest.mjs"] {
         if !directory.join(name).is_file() { return Err(format!("安装资源缺失：{name}")); }
     }
@@ -298,6 +310,27 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn node_paths_remove_windows_verbatim_prefix() {
+        assert_eq!(process_path(PathBuf::from(r"\\?\C:\中文 路径\mcp.mjs")), PathBuf::from(r"C:\中文 路径\mcp.mjs"));
+        assert_eq!(process_path(PathBuf::from(r"\\?\UNC\server\share\mcp.mjs")), PathBuf::from(r"\\server\share\mcp.mjs"));
+        assert_eq!(process_path(PathBuf::from(r"C:\normal\mcp.mjs")), PathBuf::from(r"C:\normal\mcp.mjs"));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn bundled_node_selftest_accepts_normalized_resource_paths() {
+        let resources = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources");
+        let verbatim = resources.canonicalize().expect("built MCP resources");
+        let directory = process_path(verbatim);
+        let output = std::process::Command::new(directory.join("node.exe"))
+            .arg(directory.join("mcp-selftest.mjs"))
+            .arg(directory.join("mcp-server.mjs"))
+            .output().expect("start bundled Node");
+        assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+        assert!(String::from_utf8_lossy(&output.stdout).contains("four tools verified"));
+    }
 
     #[test]
     fn mcp_output_path_stays_inside_the_output_directory() {

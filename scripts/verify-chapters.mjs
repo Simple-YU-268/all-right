@@ -53,10 +53,19 @@ try {
   await page.locator('.practice__counter').waitFor()
   assert.equal(await page.locator('.practice__counter').innerText(), '第 1 / 10 题')
   for (let index = 0; index < 10; index += 1) {
+    const counter = await page.locator('.practice__counter').innerText()
     assert.match(await page.locator('.practice__stem').innerText(), /第一章/)
     await page.getByRole('button', { name: /正确选项/ }).click()
     await page.getByRole('button', { name: '确认答案', exact: true }).click()
-    await page.getByRole('button', { name: index === 9 ? '看本次结算' : '下一题', exact: true }).click()
+    /* 提交后自己翻页，等题号变了再答下一题 */
+    await page.waitForFunction(
+      (text) => {
+        const element = document.querySelector('.practice__counter')
+        return !element || element.textContent.trim() !== text
+      },
+      counter,
+      { timeout: 8000 },
+    )
   }
   await page.locator('.summary').waitFor()
   assert.equal(await page.locator('.summary__score').innerText(), '100%')

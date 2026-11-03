@@ -26,6 +26,18 @@ await page.waitForTimeout(700)
 
 const rail = (label) => page.locator('.rail__item').filter({ hasText: label }).first()
 
+/* 提交之后会自己翻页，等题号变了才算翻过去 */
+const waitAutoAdvance = async (previous) => {
+  await page.waitForFunction(
+    (text) => {
+      const counter = document.querySelector('.practice__counter')
+      return !counter || counter.textContent.trim() !== text
+    },
+    previous,
+    { timeout: 8000 },
+  )
+}
+
 /* 1. 设置页上的模板本身就要能用 */
 await rail('设置').click()
 await page.waitForTimeout(400)
@@ -46,7 +58,11 @@ ok(Array.isArray(q0.answer) && q0.answer.length > 0, '模板题含 answer 数组
 ok(typeof q0.stem === 'string' && q0.stem.length > 0, '模板题含 stem')
 ok(tpl.questions.length === 3 && new Set(tpl.questions.map((question) => question.category)).size === 2, '模板展示两个章节、三道题')
 ok(tpl.questions[1].category === q0.category && tpl.questions[2].category !== q0.category, '相同 category 归入同章，不同 category 分章')
-ok((await page.locator('.chapter-guide').innerText()).includes('category'), '设置页说明章节字段')
+ok((await page.getByRole('region', { name: '章节管理说明' }).innerText()).includes('category'), '设置页说明章节字段')
+await page.getByText('公式写法', { exact: true }).click()
+const mathGuideText = await page.getByRole('region', { name: '公式写法说明' }).innerText()
+ok(mathGuideText.includes('$x^2+y^2=z^2$'), '设置页说明行内公式写法')
+ok(mathGuideText.includes('$$'), '设置页说明行间公式写法')
 writeFileSync(OUT, tplText, 'utf8')
 
 /* 2. 用它导入 */
@@ -91,36 +107,56 @@ await page.locator('.option').filter({ hasText: wrongText }).first().click()
 ok(await page.getByRole('button', { name: '上一题', exact: true }).isDisabled(), '首题上一题不可用')
 await page.getByRole('button', { name: '下一题', exact: true }).click()
 await page.getByRole('button', { name: '下一题', exact: true }).click()
-ok(await page.getByRole('button', { name: '看本次结算', exact: true }).isDisabled(), '跳到末题时不能提前结算')
+ok(await page.getByRole('button', { name: '下一题', exact: true }).isDisabled(), '末题之后没有下一题了')
+ok(await page.getByRole('button', { name: '确认答案', exact: true }).count() === 1, '末题也要提交才能结算')
 await page.getByRole('button', { name: '上一题', exact: true }).click()
 await page.getByRole('button', { name: '上一题', exact: true }).click()
 ok(await page.locator('.option--selected').filter({ hasText: wrongText }).count() === 1, '返回未答题保留草稿选项')
 await page.waitForTimeout(200)
+const questionTime = await page.getByTestId('question-time').innerText()
+const sessionTime = await page.getByTestId('session-time').innerText()
+await page.waitForTimeout(1200)
+ok(await page.getByTestId('question-time').innerText() !== questionTime, '未提交题目的用时持续刷新')
+ok(await page.getByTestId('session-time').innerText() !== sessionTime, '本次练习用时持续刷新')
+
+/* 提交之后先停在原地给批改看，再自己翻到下一道没答过的题 */
 await page.getByRole('button', { name: '确认答案' }).click()
-await page.waitForTimeout(500)
-const resultText = await page.locator('.result__title').first().innerText().catch(() => '')
-ok(resultText === '答错了', `批改结果为「答错了」（实际「${resultText}」）`)
 ok((await page.locator('.option--right').count()) === 1, '正确答案被标为答对（石绿勾）')
 ok((await page.locator('.option--wrong').count()) === 1, '选错的那条被标为选错了（朱红叉）')
 ok((await page.locator('.option--picked').count()) === 1, '你划的那条被单独标记（靛蓝下划线）')
-await page.getByRole('button', { name: '下一题', exact: true }).click()
-await page.getByRole('button', { name: '上一题', exact: true }).click()
+const resultText = await page.locator('.result__title').first().innerText().catch(() => '')
+ok(resultText === '答错了', `批改结果为「答错了」（实际「${resultText}」）`)
+ok(await page.locator('.practice__counter').innerText() === '第 1 / 3 题', '答错了不自动翻页，留在原地')
+ok(await page.locator('.explain').count() === 1, '答错后当场给出解析')
+ok(await page.getByTestId('advance-countdown').count() === 0, '答错了没有自动翻页的倒计时')
+const submittedTime = await page.getByTestId('question-time').innerText()
+await page.waitForTimeout(1200)
+ok(await page.getByTestId('question-time').innerText() === submittedTime, '已提交题目的用时固定，不再累计')
 ok(await page.locator('.option--picked').filter({ hasText: wrongText }).count() === 1, '回看已答题恢复原选择')
 ok(await page.getByRole('button', { name: '确认答案', exact: true }).count() === 0, '已答题不能重复提交')
 
-/* 5. 走完这题，进结算 */
-await page.getByRole('button', { name: /看本次结算|下一题/ }).click()
+/* 5. 答对了自己翻页 */
+await page.getByRole('button', { name: '下一题', exact: true }).click()
+ok(await page.locator('.practice__counter').innerText() === '第 2 / 3 题', '手动翻页走到下一道题')
 for (let questionIndex = 1; questionIndex < tpl.questions.length; questionIndex += 1) {
   const currentStem = await page.locator('.practice__stem').innerText()
   const currentQuestion = tpl.questions.find((question) => question.stem === currentStem)
   const correctText = currentQuestion.options.find((option) => option.key === currentQuestion.answer[0]).text
   await page.locator('.option').filter({ hasText: correctText }).first().click()
   await page.getByRole('button', { name: '确认答案' }).click()
-  await page.getByRole('button', { name: /看本次结算|下一题/ }).click()
+  ok(await page.getByTestId('advance-countdown').count() === 1, '答对了给出自动翻页的倒计时')
+  await waitAutoAdvance(`第 ${questionIndex + 1} / 3 题`)
+  if (questionIndex === 1) {
+    ok(await page.locator('.practice__counter').innerText() === '第 3 / 3 题', '答对了自动进入下一道未答题')
+    ok(await page.locator('.practice__verdict').count() === 1, '答对了也留一条提示')
+    ok((await page.locator('.practice__verdict').innerText()).includes('看解析'), '批改条里留着上一题的解析入口')
+  }
 }
-await page.waitForTimeout(600)
+await page.locator('.summary').waitFor({ timeout: 8000 })
 const summaryText = await page.locator('.summary').first().innerText().catch(() => '')
 ok(summaryText.length > 0, '结算页出现')
+ok(/平均每题/.test(summaryText), '结算页给出平均每题用时')
+ok(/用时 \d\d:\d\d/.test(await page.locator('.wrongrow').first().innerText()), '结算页列出答错那题的单题用时')
 
 /* 6. 错题本里应该有这道题 */
 await rail('错题本').click()

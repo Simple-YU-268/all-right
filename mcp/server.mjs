@@ -11,7 +11,7 @@ import { bankSchema } from '../src/domain/bankSchema.ts'
 const requestedOutput = process.env.ALLRIGHT_OUTPUT_DIR || process.cwd()
 await mkdir(requestedOutput, { recursive: true })
 const outputDirectory = await realpath(requestedOutput)
-const server = new McpServer({ name: 'allright-mcp', version: '0.5.0' })
+const server = new McpServer({ name: 'allright-mcp', version: '0.6.0' })
 const inputSchema = {
   bank: z.unknown().describe('Source bank object or question array; never invent missing answers.'),
   expectedSourceCount: z.number().int().positive().optional().describe('Question count independently checked against the original document.'),

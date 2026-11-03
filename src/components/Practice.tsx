@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, Check, Left as ChevronLeft, Help as CircleHelp, Time as Clock, CloseSmall as X, BookOpen } from '@icon-park/react'
 import { useApp } from '../domain/store'
+import type { ActiveSession } from '../domain/store'
 import { collectWrongBook, formatDuration, formatPercent } from '../domain/stats'
 import { buildSession, isAnswerCorrect, newId } from '../domain/session'
 import { collectAssetIds } from '../domain/content'
@@ -8,6 +9,7 @@ import type { Question, SessionMode } from '../domain/types'
 import type { Route } from '../App'
 import { EmptyState, MasteryMark, Segmented } from './bits'
 import { MediaFigure, QuestionContent, splitOptionBlocks, useMissingAssets } from './QuestionContent'
+import { MathText } from './MathText'
 import { masteryOf } from '../domain/stats'
 
 const COUNTS = [
@@ -23,6 +25,14 @@ const MODE_LABEL: Record<SessionMode, string> = {
   wrong: '错题重刷',
 }
 
+/** 答对了停这一会儿，好让人看见石绿的勾；答错了不翻页，先把解析读完。 */
+const AUTO_ADVANCE_MS = 800
+
+interface Verdict {
+  questionId: string
+  hasExplanation: boolean
+}
+
 export interface PracticeSummary {
   total: number
   correct: number
@@ -30,13 +40,49 @@ export interface PracticeSummary {
   elapsedMs: number
   mode: SessionMode
   category: string | null
-  wrongQuestions: { question: Question; chosen: string[] }[]
+  wrongQuestions: { question: Question; chosen: string[]; elapsedMs: number }[]
+}
+
+/** 结算口径只有一套：最后一题提交完和手动点「看本次结算」都从这里算。 */
+function buildSummary(
+  session: ActiveSession,
+  questions: Question[],
+  endedAt: number,
+): PracticeSummary | null {
+  const results = Object.values(session.answers)
+  if (results.length !== questions.length) return null
+  const correct = results.filter((answer) => answer.correct).length
+  return {
+    total: questions.length,
+    correct,
+    wrong: questions.length - correct,
+    elapsedMs: endedAt - session.startedAt,
+    mode: session.mode,
+    category: session.category,
+    wrongQuestions: questions
+      .filter((question) => !session.answers[question.id].correct)
+      .map((question) => ({
+        question,
+        chosen: session.answers[question.id].chosen,
+        elapsedMs: session.answers[question.id].elapsedMs,
+      })),
+  }
 }
 
 export function Practice({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const { session, activeBank, workspace, updateSession, endSession, recordAttempt } = useApp()
   const [selected, setSelected] = useState<string[]>([])
   const [summary, setSummary] = useState<PracticeSummary | null>(null)
+  const [verdict, setVerdict] = useState<Verdict | null>(null)
+  const [pending, setPending] = useState<{ target: number; deadline: number } | null>(null)
+  const [, refreshClock] = useState(0)
+
+  useEffect(() => {
+    if (!session) return
+    setSummary(null)
+    setVerdict(null)
+    setPending(null)
+  }, [session?.id])
 
   const questions = useMemo(() => {
     if (!session || !activeBank) return []
@@ -63,6 +109,41 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
   )
   const missingImages = useMissingAssets(requiredAssetIds)
 
+  /* 读数每秒走一格；等着自动翻页时走得更细，倒计时才不跳格 */
+  const waiting = pending !== null
+  useEffect(() => {
+    if (!session) return
+    const step = waiting ? 100 : 1000
+    const timer = window.setInterval(() => refreshClock((tick) => tick + 1), step)
+    return () => window.clearInterval(timer)
+  }, [session?.id, waiting])
+
+  /* 提交之后先停一会儿给批改留位置，再自己翻到下一道没答过的题 */
+  useEffect(() => {
+    if (!pending || !session) return
+    const target = pending.target
+    const jump = () => {
+      setPending(null)
+      if (target < 0) {
+        const data = buildSummary(session, questions, Date.now())
+        if (!data) return
+        setSummary(data)
+        endSession()
+        return
+      }
+      const now = Date.now()
+      setSelected(session.drafts?.[questions[target].id] ?? [])
+      updateSession({ ...session, index: target, questionStartedAt: now })
+    }
+    const delay = pending.deadline - Date.now()
+    if (delay <= 0) {
+      jump()
+      return
+    }
+    const timer = window.setTimeout(jump, delay)
+    return () => window.clearTimeout(timer)
+  }, [pending, session, questions, updateSession, endSession])
+
   if (summary) {
     return <Summary summary={summary} onNavigate={onNavigate} />
   }
@@ -77,6 +158,24 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
   const answeredCount = Object.keys(session.answers).length
   const correctCount = Object.values(session.answers).filter((a) => a.correct).length
   const elapsed = Date.now() - session.startedAt
+  const questionElapsed = answered?.elapsedMs ??
+    (session.elapsedByQuestion?.[current.id] ?? 0) + Math.max(0, Date.now() - session.questionStartedAt)
+  const remaining = pending ? Math.max(0, pending.deadline - Date.now()) : 0
+  const allAnswered = answeredCount === questions.length
+  const pendingTarget = pending ? pending.target : null
+  const nextLabel = allAnswered ? '看本次结算' : '下一题'
+  const nextDisabled = !revealed && pendingTarget === null && !allAnswered && session.index + 1 >= questions.length
+  const onlyOneLeft = questions.length - answeredCount === 1
+  const verdictIndex = verdict ? questions.findIndex((q) => q.id === verdict.questionId) : -1
+  const showVerdict = verdictIndex >= 0 && verdictIndex !== session.index && !!verdict?.hasExplanation
+
+  const finishNow = () => {
+    const data = buildSummary(session, questions, Date.now())
+    if (!data) return
+    setPending(null)
+    setSummary(data)
+    endSession()
+  }
 
   const toggle = (key: string) => {
     if (revealed) return
@@ -87,53 +186,87 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
     }
   }
 
+  /** 往后找下一道没答过的题；全答完了就回 -1。 */
+  const nextUnanswered = (from: number) => {
+    for (let step = 1; step <= questions.length; step += 1) {
+      const index = (from + step) % questions.length
+      if (!session.answers[questions[index].id]) return index
+    }
+    return -1
+  }
+
+  const jumpTo = (index: number) => {
+    if (index < 0 || index >= questions.length) return
+    setPending(null)
+    if (index === session.index) return
+    const now = Date.now()
+    setSelected(session.answers[questions[index].id]?.chosen ?? session.drafts?.[questions[index].id] ?? [])
+    updateSession({ ...session, index, questionStartedAt: now,
+      drafts: { ...session.drafts, [current.id]: selected },
+      elapsedByQuestion: { ...session.elapsedByQuestion, [current.id]: answered?.elapsedMs ?? (session.elapsedByQuestion?.[current.id] ?? 0) + Math.max(0, now - session.questionStartedAt) },
+    })
+  }
+
   const submit = () => {
-    if (!selected.length || revealed) return
+    if (!selected.length || revealed || missingImages) return
+    const now = Date.now()
     const correct = isAnswerCorrect(current, selected)
-    const elapsedMs = (session.elapsedByQuestion?.[current.id] ?? 0) + Date.now() - session.questionStartedAt
+    const elapsedMs = (session.elapsedByQuestion?.[current.id] ?? 0) + Math.max(0, now - session.questionStartedAt)
     recordAttempt({
       id: newId('a'),
       bankId: session.bankId,
       questionId: current.id,
       chosen: selected,
       correct,
-      at: Date.now(),
+      at: now,
       elapsedMs,
     })
-    updateSession({
+    const completed: ActiveSession = {
       ...session,
       answers: { ...session.answers, [current.id]: { chosen: selected, correct, elapsedMs } },
-    })
-  }
-
-  const moveTo = (index: number) => {
-    if (index < 0 || index >= questions.length) return
-    updateSession({ ...session, index, questionStartedAt: Date.now(),
-      drafts: { ...session.drafts, [current.id]: selected },
-      elapsedByQuestion: { ...session.elapsedByQuestion, [current.id]: (session.elapsedByQuestion?.[current.id] ?? 0) + Date.now() - session.questionStartedAt },
-    })
-  }
-
-  const advance = () => {
-    const isLast = session.index + 1 >= questions.length
-    if (isLast) {
-      if (answeredCount !== questions.length) return
-      const wrongQuestions = questions
-        .filter((q) => session.answers[q.id] && !session.answers[q.id].correct)
-        .map((q) => ({ question: q, chosen: session.answers[q.id].chosen }))
-      setSummary({
-        total: questions.length,
-        correct: correctCount,
-        wrong: questions.length - correctCount,
-        elapsedMs: elapsed,
-        mode: session.mode,
-        category: session.category,
-        wrongQuestions,
-      })
-      endSession()
+      elapsedByQuestion: { ...session.elapsedByQuestion, [current.id]: elapsedMs },
+    }
+    updateSession(completed)
+    /* 答错了留在原地：批改、正确答案、解析都在这一屏里 */
+    if (!correct) {
+      setPending(null)
+      setVerdict(null)
       return
     }
-    moveTo(session.index + 1)
+    /* 答对了把解析留个入口，自己翻到下一道没答过的题 */
+    setVerdict({
+      questionId: current.id,
+      hasExplanation: !!(current.explanation || current.explanationBlocks?.length),
+    })
+    const offset = questions.findIndex((_, step) => {
+      const index = (session.index + 1 + step) % questions.length
+      return !completed.answers[questions[index].id]
+    })
+    const target = offset === -1 ? -1 : (session.index + 1 + offset) % questions.length
+    setPending({ target, deadline: now + AUTO_ADVANCE_MS })
+  }
+
+  const goNext = () => {
+    if (pendingTarget !== null) {
+      setPending(null)
+      if (pendingTarget < 0) {
+        finishNow()
+        return
+      }
+      jumpTo(pendingTarget)
+      return
+    }
+    if (allAnswered) {
+      finishNow()
+      return
+    }
+    const next = session.index + 1
+    if (next < questions.length) {
+      jumpTo(next)
+      return
+    }
+    const wrap = nextUnanswered(session.index)
+    if (wrap >= 0) jumpTo(wrap)
   }
 
   return (
@@ -168,10 +301,29 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
                   答对 <b>{correctCount}</b>
                 </span>
                 <span className="practice__stat">
-                  用时 <b>{formatDuration(elapsed)}</b>
+                  本题用时 <b data-testid="question-time">{formatDuration(questionElapsed)}</b>
+                </span>
+                <span className="practice__stat">
+                  本次练习 <b data-testid="session-time">{formatDuration(elapsed)}</b>
                 </span>
               </div>
             </div>
+
+            {verdict && showVerdict ? (
+              <div className="practice__verdict practice__verdict--right" role="status">
+                <span className="practice__verdict-mark" aria-hidden="true">
+                  <Check size={14} strokeWidth={2.6} />
+                </span>
+                <span className="practice__verdict-title">上一题答对了</span>
+                <button
+                  type="button"
+                  className="practice__verdict-link"
+                  onClick={() => jumpTo(verdictIndex)}
+                >
+                  看解析
+                </button>
+              </div>
+            ) : null}
 
             <div className="dotrail" role="img" aria-label={`共 ${questions.length} 题，已答 ${answeredCount} 题`}>
               {questions.map((q, i) => {
@@ -229,9 +381,9 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
                       <span className="option__text">
                         {text.length
                           ? text.map((block, index) =>
-                              block.type === 'text' ? <span key={index}>{block.text}</span> : null,
+                              block.type === 'text' ? <MathText text={block.text} key={index} /> : null,
                             )
-                          : opt.text}
+                          : <MathText text={opt.text} />}
                       </span>
                       {revealed && isAnswer ? (
                         <Check className="option__mark" size={17} strokeWidth={2.6} aria-hidden="true" />
@@ -298,34 +450,62 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
               </>
             ) : null}
 
-            <div className="practice__actions">
-              <button type="button" className="btn btn--lg" disabled={session.index === 0} onClick={() => moveTo(session.index - 1)}>
-                <ChevronLeft size={16} strokeWidth={2} />上一题
+            <p className="practice__hint" role={missingImages && !revealed ? 'status' : undefined}>
+              {pending ? (
+                <span className="practice__countdown" data-testid="advance-countdown">
+                  {(remaining / 1000).toFixed(1)}s 后自动{pendingTarget !== null && pendingTarget < 0 ? '结算' : '进入下一题'}
+                </span>
+              ) : missingImages && !revealed ? (
+                '有图片没加载出来，这题先别提交。'
+              ) : !revealed ? (
+                onlyOneLeft
+                  ? '这是最后一题，答完就能看本次结算。'
+                  : current.type === 'multiple'
+                    ? '可多选，选完再确认'
+                    : '选一个选项'
+              ) : null}
+            </p>
+
+            <div className="practice__actions practice__answer-actions">
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm practice__step"
+                disabled={session.index === 0}
+                onClick={() => jumpTo(session.index - 1)}
+              >
+                <ChevronLeft size={14} strokeWidth={2} />上一题
               </button>
-              {!revealed ? (
+              {revealed ? (
                 <button
                   type="button"
-                  className="btn btn--primary btn--lg"
+                  className="btn btn--primary btn--lg practice__submit"
+                  onClick={goNext}
+                  disabled={nextDisabled}
+                  title={nextDisabled ? `还有 ${questions.length - answeredCount} 题未提交` : undefined}
+                >
+                  {nextLabel}
+                  <ArrowRight size={16} strokeWidth={2} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn--primary btn--lg practice__submit"
                   onClick={submit}
                   disabled={!selected.length || missingImages}
                 >
                   确认答案
                 </button>
-              ) : null}
-              <button type="button" className={`btn btn--lg${revealed ? ' btn--primary' : ''}`} onClick={advance}
-                disabled={session.index + 1 >= questions.length && answeredCount !== questions.length}
-                title={session.index + 1 >= questions.length && answeredCount !== questions.length ? `还有 ${questions.length - answeredCount} 题未提交` : undefined}>
-                {session.index + 1 >= questions.length ? '看本次结算' : '下一题'}
-                <ArrowRight size={16} strokeWidth={2} />
-              </button>
+              )}
               {!revealed ? (
-                missingImages ? (
-                  <span className="t-meta" role="status">有图片没加载出来，这题先别提交。</span>
-                ) : (
-                  <span className="t-meta">
-                    {current.type === 'multiple' ? '可多选，选完再确认' : '选一个选项'}
-                  </span>
-                )
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm practice__step"
+                  onClick={goNext}
+                  disabled={nextDisabled}
+                  title={nextDisabled ? `还有 ${questions.length - answeredCount} 题未提交` : undefined}
+                >
+                  下一题<ArrowRight size={14} strokeWidth={2} />
+                </button>
               ) : null}
             </div>
           </div>
@@ -338,6 +518,7 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
 function Summary({ summary, onNavigate }: { summary: PracticeSummary; onNavigate: (route: Route) => void }) {
   const { activeBank, workspace, startSession } = useApp()
   const accuracy = summary.total ? summary.correct / summary.total : null
+  const average = summary.total ? Math.round(summary.elapsedMs / summary.total) : 0
 
   const repeat = () => {
     if (!activeBank) return
@@ -398,6 +579,7 @@ function Summary({ summary, onNavigate }: { summary: PracticeSummary; onNavigate
                   <div className="summary__cell">
                     <p className="t-label">用时</p>
                     <p className="summary__value">{formatDuration(summary.elapsedMs)}</p>
+                    <p className="t-meta">平均每题 {formatDuration(average)}</p>
                   </div>
                 </div>
 
@@ -425,7 +607,7 @@ function Summary({ summary, onNavigate }: { summary: PracticeSummary; onNavigate
                 </header>
                 <div className="panel__body panel__body--flush">
                   <div className="wronglist">
-                    {summary.wrongQuestions.map(({ question, chosen }) => (
+                    {summary.wrongQuestions.map(({ question, chosen, elapsedMs }) => (
                       <div className="wrongrow" key={question.id}>
                         <span className="wrongrow__mark" aria-hidden="true">
                           <X size={13} strokeWidth={2.4} />
@@ -439,12 +621,13 @@ function Summary({ summary, onNavigate }: { summary: PracticeSummary; onNavigate
                           <p className="wrongrow__meta">
                             <span className="chip chip--wrong">你选了 {chosen.join('、')}</span>
                             <span className="chip chip--right">正确 {question.answer.join('、')}</span>
+                            <span className="chip">用时 {formatDuration(elapsedMs)}</span>
                             <span>{question.category}</span>
                           </p>
                           {question.explanation ? (
-                            <p className="explain__body" style={{ marginTop: 'var(--s2)', fontSize: 'var(--t-sm)' }}>
-                              {question.explanation}
-                            </p>
+                            <div className="explain__body" style={{ marginTop: 'var(--s2)', fontSize: 'var(--t-sm)' }}>
+                              <MathText text={question.explanation} />
+                            </div>
                           ) : null}
                         </div>
                       </div>

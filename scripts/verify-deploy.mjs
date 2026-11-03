@@ -54,6 +54,7 @@ async function probe(label, url) {
   let booted = false
   let sampleOk = false
   let serifOk = false
+  let mathOk = false
   try {
     await p.goto(url, { waitUntil: 'domcontentloaded', timeout: 12000 })
     await p.waitForTimeout(2200)
@@ -62,6 +63,16 @@ async function probe(label, url) {
       serifOk = await p.evaluate(async () => {
         await document.fonts.ready
         return document.fonts.check('16px "Noto Serif SC"')
+      })
+      /* 公式样式与字体也得跟着部署形态走：CSS 能加载，且字体文件拿得到 */
+      mathOk = await p.evaluate(async () => {
+        const link = [...document.querySelectorAll('link[rel="stylesheet"]')].find((item) => item.href.includes('katex'))
+        if (!link) return false
+        await new Promise((resolve) => setTimeout(resolve, 300))
+        if (!link.sheet || link.sheet.cssRules.length === 0) return false
+        const font = new URL('./KaTeX_Main-Regular.woff2', link.href)
+        const response = await fetch(font)
+        return response.ok
       })
       await p.locator('.rail__item').filter({ hasText: '题库' }).first().click()
       await p.waitForTimeout(500)
@@ -74,10 +85,10 @@ async function probe(label, url) {
   }
   await b.close()
 
-  const ok = booted && sampleOk && serifOk
+  const ok = booted && sampleOk && serifOk && mathOk
   if (!ok) fails.push(label)
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}`)
-  console.log(`      启动 ${booted ? '✓' : '✗'} · 示例题库 ${sampleOk ? '✓' : '✗'} · 宋体 ${serifOk ? '✓' : '✗'} · woff2 ${fontStatuses.length} 个（状态 ${[...new Set(fontStatuses)].join(',') || '无'}）`)
+  console.log(`      启动 ${booted ? '✓' : '✗'} · 示例题库 ${sampleOk ? '✓' : '✗'} · 宋体 ${serifOk ? '✓' : '✗'} · 公式 ${mathOk ? '✓' : '✗'} · woff2 ${fontStatuses.length} 个（状态 ${[...new Set(fontStatuses)].join(',') || '无'}）`)
   if (errors.length) console.log(`      报错 ${errors[0]}`)
 }
 

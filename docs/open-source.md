@@ -10,6 +10,7 @@ ALL RIGHT 使用现有开源项目处理通用能力，题库和练习相关规�
 | 工具参数校验 | Zod | MIT |
 | ZIP 压缩与解压 | fflate | MIT |
 | 界面图标 | IconPark React | Apache-2.0 |
+| 公式排版 | KaTeX | MIT |
 
 npm 实际版本、传递依赖及随包许可证见根目录 `THIRD_PARTY_NOTICES.md`。
 运行 `npm run notices` 可从锁文件与本地已安装依赖重新生成，安装包包含该文件。
@@ -39,6 +40,11 @@ JavaScriptCore/WebKit，涉及 LGPL 与可修改、重新链接相关要求。
 字体的 OFL 文本已从 Google Fonts 官方仓库补入 `public/fonts/`：
 `OFL-NotoSerifSC.txt` 与 `OFL-IBMPlexMono.txt`。这些文件对应字体家族的授权，
 具体字体二进制的下载历史无法从现有仓库完整恢复；已核对内部家族信息，未声称逐字节匹配某一上游提交。
+
+公式字体是 KaTeX 自带的 woff2，随 `public/fonts/katex/` 一起分发，
+KaTeX 的 MIT 许可证原文同放在该目录（`public/fonts/katex/LICENSE`）。
+字体文件由 `npm run vendor:katex-fonts` 从 `node_modules/katex` 复制生成，
+只保留 woff2 一档，未做二次修改。
 
 
 ## 后续选型原则

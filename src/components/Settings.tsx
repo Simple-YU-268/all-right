@@ -10,6 +10,7 @@ import type { Workspace } from '../domain/types'
 import type { Route } from '../App'
 import { CopyButton } from './bits'
 import { ChapterGuide } from './ChapterGuide'
+import { MathGuide } from './MathGuide'
 import { McpSettings } from './McpSettings'
 
 export function Settings({ onNavigate }: { onNavigate: (route: Route) => void }) {
@@ -118,6 +119,8 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
                 </div>
 
                 <details className="settings-disclosure"><summary>章节组织规则</summary><ChapterGuide /></details>
+
+                <details className="settings-disclosure"><summary>公式写法</summary><MathGuide /></details>
 
                 <details className="settings-disclosure"><summary>JSON 模板与兼容字段</summary>
                 <div className="schema schema--split">

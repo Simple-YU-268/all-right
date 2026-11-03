@@ -8,6 +8,7 @@ import {
   subscribeMissing,
 } from '../domain/assets'
 import type { ContentBlock } from '../domain/types'
+import { MathText } from './MathText'
 
 /** 图片准备好了没有：题干的图要等齐，解析的图可以慢慢来。 */
 export function useAssetUrl(assetId: string): { url: string | null; status: 'loading' | 'ready' | 'error' } {
@@ -93,7 +94,7 @@ export function ContentBlocks({ blocks }: { blocks: ContentBlock[] }) {
     <>
       {blocks.map((block, index) =>
         block.type === 'text'
-          ? <p className="content__text" key={index}>{block.text}</p>
+          ? <p className="content__text" key={index}><MathText text={block.text} /></p>
           : <MediaFigure block={block} key={index} />,
       )}
     </>
@@ -113,7 +114,7 @@ export function QuestionContent({
   className?: string
 }) {
   if (!blocks?.length) {
-    return <p className={className}>{fallback}</p>
+    return <p className={className}><MathText text={fallback} /></p>
   }
   return (
     <div className={className ? `content ${className}` : 'content'}>

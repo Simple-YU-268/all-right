@@ -116,14 +116,17 @@ try {
   await page.locator('.explain .media__img').first().waitFor({ timeout: 5000 })
   assert.equal(await page.locator('.explain .media__img').count(), 1, '解析里也渲染出配图')
 
+  /* 答错了不自动翻页：批改、解析、配图都留在这一屏 */
+  assert.equal(await page.locator('.practice__counter').innerText(), '第 1 / 2 题', '答错了留在原地看解析')
+
   /* 这一章还有一题，练完才回得到练习首页 */
   await page.getByRole('button', { name: '下一题' }).click()
   await page.waitForTimeout(300)
   await page.getByRole('button', { name: /这段信号是直流量/ }).click()
   await page.getByRole('button', { name: '确认答案', exact: true }).click()
   await page.waitForTimeout(300)
-  await page.getByRole('button', { name: '看本次结算' }).click()
-  await page.waitForTimeout(300)
+  await page.getByRole('button', { name: '看本次结算', exact: true }).click()
+  await page.locator('.summary').waitFor({ timeout: 8000 })
 
   /* 5. 图片选项：点图不等于选答案 */
   await page.getByRole('button', { name: '去看板' }).click()

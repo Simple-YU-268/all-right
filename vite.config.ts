@@ -7,6 +7,14 @@ export default defineConfig(({ command }) => ({
      /repo/ 这类子目录（GitHub Pages 项目站、OSS 带目录的静态托管）。
      开发服务器保持 "/"，免得本地热更新路径跟着变形。 */
   base: command === 'build' ? './' : '/',
+  build: {
+    rollupOptions: {
+      output: {
+        /* 公式排版单独成块：应用代码更新时，KaTeX 这一块还能留在浏览器缓存里。 */
+        manualChunks: (id) => (id.includes('node_modules/katex') ? 'katex' : undefined),
+      },
+    },
+  },
   server: {
     host: '127.0.0.1',
     port: 5173,

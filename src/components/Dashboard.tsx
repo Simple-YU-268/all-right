@@ -6,6 +6,7 @@ import { buildSession, newId } from '../domain/session'
 import { DATA_PLACE } from '../domain/shell'
 import type { Route } from '../App'
 import { EmptyState, InkSteps, Segmented, masteryInk, masteryLabel } from './bits'
+import { MathText } from './MathText'
 
 const COUNTS = [
   { value: 10, label: '10 题' },
@@ -445,7 +446,7 @@ function DashboardSide({ data, wrong, onNavigate, onBeginWrong }: DashboardSideP
                     <X size={13} strokeWidth={2.4} />
                   </span>
                   <div className="wrongrow__body">
-                    <p className="wrongrow__stem">{entry.question.stem}</p>
+                    <p className="wrongrow__stem"><MathText text={entry.question.stem} /></p>
                     <p className="wrongrow__meta">
                       <span className="chip chip--wrong">错 {entry.stat.wrongCount} 次</span>
                       <span>{entry.question.category}</span>

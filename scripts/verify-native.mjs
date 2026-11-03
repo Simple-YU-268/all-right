@@ -68,9 +68,11 @@ try {
   assetsBefore = snapshot.assets
   await page.locator('.rail__item').nth(4).click()
   await page.locator('code').filter({ hasText: 'workspace.json' }).waitFor()
-  assert.match(await page.locator('.chapter-guide').innerText(), /category/)
-  assert.match(await page.locator('.chapter-guide').innerText(), /默认全选/)
-  const template = JSON.parse(await page.locator('pre.schema__code.t-data').first().innerText())
+  await page.getByText('章节组织规则', { exact: true }).click()
+  await page.getByText('JSON 模板与兼容字段', { exact: true }).click()
+  assert.match(await page.locator('.chapter-guide[aria-label="章节管理说明"]').innerText(), /category/)
+  assert.match(await page.locator('.chapter-guide[aria-label="章节管理说明"]').innerText(), /默认全选/)
+  const template = JSON.parse(await page.locator('#settings-format pre.schema__code.t-data').innerText())
   assert.equal(template.questions.length, 3)
   assert.equal(new Set(template.questions.map((question) => question.category)).size, 2)
   const roundTrip = await page.evaluate(async () => {

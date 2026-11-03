@@ -646,6 +646,7 @@
 
 .practice__top {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--s4);
   margin-bottom: var(--s5);
@@ -664,6 +665,7 @@
 
 .practice__stats {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--s4);
   margin-left: auto;
@@ -676,6 +678,116 @@
   font-variant-numeric: tabular-nums;
   font-weight: 500;
   color: var(--ink-900);
+}
+
+.practice__stat {
+  white-space: nowrap;
+}
+
+/* 翻页之后留下的批改条：判定还留在手边，解析一键回去看 */
+.practice__verdict {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-bottom: var(--s4);
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--rule);
+  border-left-width: 3px;
+  border-radius: var(--r-control);
+  background: var(--paper-raised);
+  font-size: var(--t-sm);
+  line-height: 1.5;
+}
+
+.practice__verdict--right {
+  border-left-color: var(--right);
+}
+
+.practice__verdict--wrong {
+  border-left-color: var(--wrong);
+}
+
+.practice__verdict-mark {
+  display: inline-flex;
+  color: var(--ink-500);
+}
+
+.practice__verdict--right .practice__verdict-mark {
+  color: var(--right);
+}
+
+.practice__verdict--wrong .practice__verdict-mark {
+  color: var(--wrong);
+}
+
+.practice__verdict-title {
+  font-family: var(--font-serif);
+  font-weight: 600;
+}
+
+.practice__verdict--right .practice__verdict-title {
+  color: var(--right);
+}
+
+.practice__verdict--wrong .practice__verdict-title {
+  color: var(--wrong);
+}
+
+.practice__verdict-detail {
+  color: var(--ink-700);
+}
+
+.practice__verdict-link {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--blue-6);
+  font-size: var(--t-sm);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.practice__countdown {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-xs);
+  color: var(--ink-500);
+  white-space: nowrap;
+}
+
+/* ---- 公式 ---- */
+
+/* 公式跟着题面的墨色走，不另起一套颜色 */
+.katex {
+  color: inherit;
+  font-size: 1.05em;
+}
+
+.math--display {
+  display: block;
+}
+
+/* 窄屏上长公式自己横向滚，别把整页撑宽 */
+.katex-display {
+  margin: var(--s3) 0;
+  padding: var(--s1) 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* 公式里的中文跟题面一样读宋体 */
+.katex .text {
+  font-family: var(--font-serif);
+}
+
+/* 排不了版的公式把原文还回去 */
+.math__raw {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: var(--ink-500);
+  white-space: pre-wrap;
 }
 
 .dotrail {
@@ -1023,9 +1135,38 @@
 
 .practice__actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--s3);
   margin-top: var(--s5);
+}
+
+.practice__answer-actions {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s3);
+  margin-top: var(--s5);
+}
+
+/* 动作区只有一个主角：确认答案占中间，上一题下一题退到两边当配角 */
+.practice__submit {
+  width: 100%;
+}
+
+.practice__step {
+  justify-self: start;
+}
+
+.practice__actions > .practice__step:last-child {
+  justify-self: end;
+}
+
+.practice__hint {
+  margin-top: var(--s4);
+  min-height: 1.5em;
+  font-size: var(--t-sm);
+  color: var(--ink-500);
 }
 
 .result {
