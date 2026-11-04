@@ -5,7 +5,7 @@ import { useApp } from '../domain/store'
 import { collectWrongBook, formatPercent, masteryOf } from '../domain/stats'
 import { buildSession, newId } from '../domain/session'
 import type { Route } from '../App'
-import { EmptyState, MasteryMark } from './bits'
+import { EmptyState, MasteryMark, QuestionTypeMark } from './bits'
 import { QuestionContent } from './QuestionContent'
 
 type SortKey = 'wrong' | 'recent' | 'category'
@@ -211,6 +211,7 @@ export function WrongBook({ onNavigate }: { onNavigate: (route: Route) => void }
                             className="wrongrow__stem"
                           />
                           <p className="wrongrow__meta">
+                            <QuestionTypeMark type={entry.question.type} />
                             <span className="chip chip--wrong">错 {last.wrongCount} 次</span>
                             <span className="chip">正确 {entry.question.answer.join('、')}</span>
                             <span>{entry.question.category}</span>

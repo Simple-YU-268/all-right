@@ -7,6 +7,7 @@ import { QuestionContent } from './QuestionContent'
 import { ThemedButton } from './ThemedButton'
 import type { Route } from '../App'
 import { ChapterEditor } from './ChapterManager'
+import { QuestionTypeMark } from './bits'
 
 export function QuestionSearch({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const { activeBank, workspace, startSession } = useApp()
@@ -36,7 +37,7 @@ export function QuestionSearch({ onNavigate }: { onNavigate: (route: Route) => v
       </div>
       <ThemedButton className="btn btn--primary" disabled={!matches.length} onClick={() => { startSession(buildSession(activeBank, { mode: 'random', category: null, count: matches.length }, matches, newId('s')), true); onNavigate('practice') }}>练习检索结果</ThemedButton>
       {editing !== null ? <ChapterEditor key={editing} bank={activeBank} editor={{ kind: 'edit', category: editing }} onCancel={() => setEditing(null)} onSaved={() => setEditing(null)} /> : null}
-      {matches.slice(0, limit).map(question => <details key={question.id} className="chapter-entry"><summary>{question.id} · {question.category} · {question.stem}</summary><QuestionContent blocks={question.stemBlocks} fallback={question.stem} />{question.options.map(option => <div key={option.key}><b>{option.key}. </b><QuestionContent blocks={option.blocks} fallback={option.text} /></div>)}<p>答案：{question.answer.join('、')}</p><QuestionContent blocks={question.explanationBlocks} fallback={question.explanation ?? ''} /><div className="filters"><ThemedButton className="btn btn--sm" onClick={() => { startSession(buildSession(activeBank, { mode: 'random', category: null, count: 1 }, [question], newId('s')), true); onNavigate('practice') }}>练习这题</ThemedButton><ThemedButton className="btn btn--sm" onClick={() => setEditing(question.category)}>编辑所在章节</ThemedButton></div></details>)}
+      {matches.slice(0, limit).map(question => <details key={question.id} className="chapter-entry"><summary className="question-search__summary"><QuestionTypeMark type={question.type} />{question.id} · {question.category} · {question.stem}</summary><QuestionContent blocks={question.stemBlocks} fallback={question.stem} />{question.options.map(option => <div key={option.key}><b>{option.key}. </b><QuestionContent blocks={option.blocks} fallback={option.text} /></div>)}<p>答案：{question.answer.join('、')}</p><QuestionContent blocks={question.explanationBlocks} fallback={question.explanation ?? ''} /><div className="filters"><ThemedButton className="btn btn--sm" onClick={() => { startSession(buildSession(activeBank, { mode: 'random', category: null, count: 1 }, [question], newId('s')), true); onNavigate('practice') }}>练习这题</ThemedButton><ThemedButton className="btn btn--sm" onClick={() => setEditing(question.category)}>编辑所在章节</ThemedButton></div></details>)}
       {!matches.length ? <p role="status">没有匹配题目</p> : null}
       {matches.length > limit ? <ThemedButton className="btn" onClick={() => setLimit(limit + 30)}>加载更多</ThemedButton> : null}
     </div>

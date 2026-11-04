@@ -170,6 +170,7 @@
 .ll-ui .ll-route-practice > .topbar { padding: 0 0 24px; background: none; border: 0; }
 .ll-ui .practice__stem { font-size: 25px; line-height: 1.8; }
 .ll-ui .practice__meta { margin-bottom: 20px; }
+.ll-ui .question-type--hand { min-height: 28px; padding: 3px 10px; border: 0; border-radius: 0; background: transparent; color: var(--ll-ink); font-family: var(--font-hand); font-size: 14px; font-weight: 700; gap: 6px; }
 .ll-ui .option { border: 0; background: transparent; padding: 0; }
 .ll-ui .option__pick { position: relative; width: 100%; height: auto; min-height: 62px; padding: 16px; white-space: normal; justify-content: start; text-align: left; gap: 14px; color: var(--ll-ink); font-family: var(--font-sans); font-weight: 400; }
 .ll-ui .option__pick:disabled { pointer-events: auto; cursor: default; }
@@ -178,8 +179,19 @@
 .ll-ui .option--right { --ll-slip: var(--right-soft); --ll-ink: var(--right); }
 .ll-ui .option--wrong { --ll-slip: var(--wrong-soft); --ll-ink: var(--wrong); }
 .ll-ui .option__key { background: transparent; color: currentColor; font-family: 'Kevin Sans Type', var(--font-mono); font-size: 18px; }
+.ll-ui .option__key--hand { position: relative; isolation: isolate; width: 28px; min-width: 28px; height: 28px; padding: 0; border: 0; border-radius: 0; background: transparent; color: currentColor; }
 .ll-ui .option__text { font-size: 16px; }
 .ll-ui .options { gap: 16px; }
+.ll-ui .practice__verdict--hand { position: relative; isolation: isolate; display: flex; flex-wrap: wrap; align-items: center; column-gap: 12px; row-gap: 4px; margin-bottom: 24px; padding: 12px 16px; border: 0; border-radius: 0; background: transparent; font-size: 15px; }
+.ll-ui .practice__verdict--hand.practice__verdict--right { --ll-slip: var(--right-soft); }
+.ll-ui .practice__verdict--hand.practice__verdict--wrong { --ll-slip: var(--wrong-soft); }
+.ll-ui .practice__verdict--hand .practice__verdict-mark { display: inline-flex; align-items: center; }
+.ll-ui .practice__verdict--hand.practice__verdict--right .practice__verdict-mark { color: var(--right); }
+.ll-ui .practice__verdict--hand.practice__verdict--wrong .practice__verdict-mark { color: var(--wrong); }
+.ll-ui .practice__verdict--hand .practice__verdict-title { font-family: var(--font-serif); font-size: 16px; font-weight: 600; }
+.ll-ui .practice__verdict--hand.practice__verdict--right .practice__verdict-title { color: var(--right); }
+.ll-ui .practice__verdict--hand.practice__verdict--wrong .practice__verdict-title { color: var(--wrong); }
+.ll-ui .practice__verdict--hand .practice__verdict-link { margin-left: auto; padding: 0; border: 0; background: transparent; color: var(--ll-link); font-family: var(--font-hand); font-size: 15px; font-weight: 700; text-decoration: none; white-space: nowrap; }
 .ll-ui .result { background: transparent; border: 0; padding: 16px 0; }
 .ll-ui .explain { background: transparent; border: 0; border-top: 1px solid var(--rule); padding: 20px 0 0; }
 .ll-ui .explain__label { font-size: 14px; }

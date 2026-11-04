@@ -6,7 +6,7 @@
 
 **离线电子刷题台** · 章节直达 · 错题本 · 进度看板 · 图片题
 
-[![release](https://img.shields.io/badge/release-v0.7.0-4a5dab)](https://github.com/Simple-YU-268/all-right/releases/tag/v0.7.0)
+[![release](https://img.shields.io/badge/release-v0.7.1-5f80d43)](https://github.com/Simple-YU-268/all-right/releases/tag/v0.7.1)
 [![platform](https://img.shields.io/badge/platform-Windows%20x64-4a5dab)](https://github.com/Simple-YU-268/all-right/releases)
 [![stack](https://img.shields.io/badge/stack-Rust%20%2B%20Tauri%202%20%2B%20React-4a5dab)](https://tauri.app)
 [![offline](https://img.shields.io/badge/data-local%20only%20%2F%20never%20uploaded-2c7355)](https://github.com/Simple-YU-268/all-right)
@@ -47,13 +47,15 @@
 
 界面视觉方向是「蜡纸油印卷子」：靛蓝油墨印在冷灰纸面上，答错处留一道朱红批改，答对处是石绿。字体分三个角色：宋体读题面、系统无衬线做界面、等宽读数做数据。
 
+还可以在「设置 → 通用偏好 → 界面主题」切到「手绘笔记」：顶部全局导航的学习桌，练习页把题面和答题卡拆成两张纸面。详见[主题说明](themes.md)。
+
 ## 下载
 
-Windows x64 安装包见 [Releases](https://github.com/Simple-YU-268/all-right/releases)，当前版本 **v0.7.0**，内置 MCP 无需 Node.js：
+Windows x64 安装包见 [Releases](https://github.com/Simple-YU-268/all-right/releases)，当前版本 **v0.7.1**，内置 MCP 无需 Node.js：
 
 | 文件 | 说明 | 大小 |
 | --- | --- | --- |
-| [`ALLRIGHT-Setup-0.7.0.exe`](https://github.com/Simple-YU-268/all-right/releases/download/v0.7.0/ALLRIGHT-Setup-0.7.0.exe) | 安装版，含 MCP。设置页复制 Agent 配置 | 以发行附件为准 |
+| [`ALLRIGHT-Setup-0.7.1.exe`](https://github.com/Simple-YU-268/all-right/releases/download/v0.7.1/ALLRIGHT-Setup-0.7.1.exe) | 安装版，含 MCP。设置页复制 Agent 配置 | 以发行附件为准 |
 | `SHA256SUMS.txt` | 安装包 SHA-256 校验值 | — |
 
 安装包和校验值放在同一个发行版里。校验方法：

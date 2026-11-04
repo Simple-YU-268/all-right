@@ -8,7 +8,7 @@ import { buildSession, isAnswerCorrect, newId, remainingChapterQuestions } from 
 import { collectAssetIds } from '../domain/content'
 import type { Question, SessionMode } from '../domain/types'
 import type { Route } from '../App'
-import { EmptyState, MasteryMark, Segmented } from './bits'
+import { EmptyState, MasteryMark, OptionKey, QuestionTypeMark, Segmented } from './bits'
 import { MediaFigure, QuestionContent, splitOptionBlocks, useMissingAssets } from './QuestionContent'
 import { MathText } from './MathText'
 import { masteryOf } from '../domain/stats'
@@ -17,6 +17,9 @@ import { StudyPaper } from './StudyPaper'
 import { Paper } from '../vendor/looseleaf/ui/paper'
 import { Progress } from '../vendor/looseleaf/ui/progress'
 import { Button } from '../vendor/looseleaf/ui/button'
+import { Icon as HandIcon } from '../vendor/looseleaf/ui/icon'
+import { Ink } from '../vendor/looseleaf/ink/react'
+import { handFrameRecipe } from './hand-frame'
 
 const COUNTS = [
   { value: 10, label: '10 题' },
@@ -333,19 +336,40 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
             </div> : null}
 
             {verdict && showVerdict ? (
-              <div className={`practice__verdict practice__verdict--${session.answers[verdict.questionId]?.correct ? 'right' : 'wrong'}`} role="status">
-                <span className="practice__verdict-mark" aria-hidden="true">
-                  {session.answers[verdict.questionId]?.correct ? <Check size={14} strokeWidth={2.6} /> : <X size={14} strokeWidth={2.6} />}
-                </span>
-                <span className="practice__verdict-title">{session.answers[verdict.questionId]?.correct ? '上一题答对了' : '上一题答错了，已收进错题本'}</span>
-                <ThemedButton
-                  type="button"
-                  className="practice__verdict-link"
-                  onClick={() => jumpTo(verdictIndex)}
+              theme === 'looseleaf' ? (
+                <div
+                  className={`practice__verdict practice__verdict--hand practice__verdict--${session.answers[verdict.questionId]?.correct ? 'right' : 'wrong'}`}
+                  role="status"
                 >
-                  看解析
-                </ThemedButton>
-              </div>
+                  <Ink recipe={handFrameRecipe} params={{ opacity: 0.94 }} seed={`verdict-${verdict.questionId}`} layers={['rest']} />
+                  <span className="practice__verdict-mark" aria-hidden="true">
+                    <HandIcon name={session.answers[verdict.questionId]?.correct ? 'circle-check' : 'circle-x'} size={17} />
+                  </span>
+                  <span className="practice__verdict-title">{session.answers[verdict.questionId]?.correct ? '上一题答对了' : '上一题答错了，已收进错题本'}</span>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="practice__verdict-link"
+                    onClick={() => jumpTo(verdictIndex)}
+                  >
+                    看解析
+                  </Button>
+                </div>
+              ) : (
+                <div className={`practice__verdict practice__verdict--${session.answers[verdict.questionId]?.correct ? 'right' : 'wrong'}`} role="status">
+                  <span className="practice__verdict-mark" aria-hidden="true">
+                    {session.answers[verdict.questionId]?.correct ? <Check size={14} strokeWidth={2.6} /> : <X size={14} strokeWidth={2.6} />}
+                  </span>
+                  <span className="practice__verdict-title">{session.answers[verdict.questionId]?.correct ? '上一题答对了' : '上一题答错了，已收进错题本'}</span>
+                  <ThemedButton
+                    type="button"
+                    className="practice__verdict-link"
+                    onClick={() => jumpTo(verdictIndex)}
+                  >
+                    看解析
+                  </ThemedButton>
+                </div>
+              )
             ) : null}
 
             {theme !== 'looseleaf' ? <div className="dotrail" role="img" aria-label={`共 ${questions.length} 题，已答 ${answeredCount} 题`}>
@@ -363,9 +387,9 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
             </div> : null}
 
             <div className="practice__meta">
-              <span className="chip chip--blue">{current.category}</span>
+              <QuestionTypeMark type={current.type} />
+              <span className="practice__category">{current.category}</span>
               <MasteryMark mastery={mastery} />
-              {current.type === 'multiple' ? <span className="chip">多选</span> : null}
             </div>
 
             <QuestionContent
@@ -374,7 +398,7 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
               className="t-stem practice__stem"
             />
 
-            <div className="options" role="group" aria-label="选项">
+            <div className={`options options--${current.type}`} role="group" aria-label="选项">
               {current.options.map((opt) => {
                 const isChosen = selected.includes(opt.key)
                 const isAnswer = current.answer.includes(opt.key)
@@ -398,9 +422,7 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
                       disabled={revealed}
                       aria-pressed={isChosen}
                     >
-                      <span className="option__key" aria-hidden="true">
-                        {opt.key}
-                      </span>
+                      {current.type !== 'judge' ? <OptionKey label={opt.key} type={current.type} seed={`${current.id}-${opt.key}`} /> : null}
                       <span className="option__text">
                         {text.length
                           ? text.map((block, index) =>
@@ -661,6 +683,7 @@ function Summary({ summary, onNavigate }: { summary: PracticeSummary; onNavigate
                             className="wrongrow__stem"
                           />
                           <p className="wrongrow__meta">
+                            <QuestionTypeMark type={question.type} />
                             <span className="chip chip--wrong">你选了 {chosen.join('、')}</span>
                             <span className="chip chip--right">正确 {question.answer.join('、')}</span>
                             <span className="chip">用时 {formatDuration(elapsedMs)}</span>

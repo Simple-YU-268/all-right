@@ -1,10 +1,46 @@
 import { ThemedButton } from './ThemedButton'
 import { useState, type ReactNode } from 'react'
-import { Check, Copy } from '@icon-park/react'
-import { MASTERY_LABELS, type Mastery } from '../domain/types'
+import { Check, Copy, Help, ListCheckbox, RadioTwo } from '@icon-park/react'
+import { MASTERY_LABELS, type Mastery, type QuestionType } from '../domain/types'
 import { useTheme } from '../domain/theme'
 import { Tabs, TabsList, TabsTrigger } from '../vendor/looseleaf/ui/tabs'
 import { Badge } from '../vendor/looseleaf/ui/badge'
+import { Icon as HandIcon } from '../vendor/looseleaf/ui/icon'
+import { Ink } from '../vendor/looseleaf/ink/react'
+import { buttonRecipe } from '../vendor/looseleaf/ink/recipes/button-ink'
+
+const QUESTION_TYPES = {
+  single: { label: '单选题', icon: RadioTwo, handIcon: 'circle-dot' },
+  multiple: { label: '多选题', icon: ListCheckbox, handIcon: 'square-check' },
+  judge: { label: '判断题', icon: Help, handIcon: 'circle-question-mark' },
+} satisfies Record<QuestionType, { label: string; icon: typeof RadioTwo; handIcon: string }>
+
+export function QuestionTypeMark({ type }: { type: QuestionType }) {
+  const [theme] = useTheme()
+  const { label, icon: Icon, handIcon } = QUESTION_TYPES[type]
+  if (theme === 'looseleaf') return (
+    <Badge variant="secondary" size="lg" seed={`question-type-${type}`} className="question-type question-type--hand" data-question-type={type} aria-label={`题型：${label}`}>
+      <HandIcon name={handIcon} size={16} />
+      {label}
+    </Badge>
+  )
+  return (
+    <span className="question-type" data-question-type={type} aria-label={`题型：${label}`}>
+      <Icon size={15} strokeWidth={2} aria-hidden="true" />
+      {label}
+    </span>
+  )
+}
+
+export function OptionKey({ label, type, seed }: { label: string; type: QuestionType; seed: string }) {
+  const [theme] = useTheme()
+  return (
+    <span className={`option__key${theme === 'looseleaf' ? ' option__key--hand' : ''}`} aria-hidden="true">
+      {theme === 'looseleaf' ? <Ink recipe={buttonRecipe} params={{ variant: 'outline', size: 'icon-xs', shape: type === 'multiple' ? 'default' : 'pill' }} seed={seed} layers={['rest']} /> : null}
+      {label}
+    </span>
+  )
+}
 
 /** 剪贴板：优先用 Clipboard API，不可用时退回选区复制。 */
 async function copyText(text: string): Promise<boolean> {
