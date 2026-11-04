@@ -5,6 +5,7 @@ import { CheckOne, Download, Refresh } from '@icon-park/react'
 import { IS_TAURI } from '../domain/shell'
 import { readBankFile } from '../domain/parseBank'
 import BANK_JSON_SCHEMA from '../domain/bankSchema.json'
+import { BANK_PACK_PROMPT } from '../domain/bankPackPrompt'
 import { downloadJson } from '../domain/storage'
 import { useApp } from '../domain/store'
 import type { Bank } from '../domain/types'
@@ -89,6 +90,14 @@ export function McpSettings() {
         <p className="panel__hint">{IS_TAURI ? '本地 stdio · 无需 Node.js' : '桌面安装版提供内置 MCP'}</p>
       </header>
       <div className="panel__body mcp">
+        <div className="mcp__prompt">
+          <div className="mcp__heading">
+            <h3 className="t-label">自制题库包</h3>
+            <CopyButton text={BANK_PACK_PROMPT} className="btn btn--sm">复制题库包提示词</CopyButton>
+          </div>
+          <p className="t-meta">将提示词和试题文件一起交给你的 Agent，可制作分章节、含图片的离线题库包及核对报告。</p>
+          <details className="mcp__config"><summary>查看完整提示词</summary><pre className="schema__code t-data">{BANK_PACK_PROMPT}</pre></details>
+        </div>
         {error ? <p className="t-meta" role="alert">{error}</p> : null}
         {IS_TAURI && !config && !error ? <p className="t-meta" role="status">正在读取配置…</p> : null}
         {config ? <>

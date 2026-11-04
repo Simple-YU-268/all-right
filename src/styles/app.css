@@ -893,6 +893,7 @@
 
 .chapter-entry {
   display: flex;
+  white-space: normal;
   align-items: center;
   gap: var(--s3);
   width: 100%;
@@ -1527,6 +1528,8 @@
 .mcp__config { margin-top: var(--s3); min-width: 0; }
 .mcp__config summary { cursor: pointer; font-size: var(--t-sm); color: var(--ink-500); padding: var(--s2) 0; }
 .mcp__config pre { margin-top: var(--s2); white-space: pre-wrap; overflow-wrap: anywhere; }
+.mcp__prompt { padding-bottom: var(--s4); margin-bottom: var(--s4); border-bottom: 1px solid var(--rule); }
+.mcp__prompt pre { max-height: 24rem; overflow: auto; }
 .mcp__outputs { margin-top: var(--s5); padding-top: var(--s4); border-top: 1px solid var(--rule); }
 .mcp__empty { padding: var(--s5) 0; color: var(--ink-500); font-size: var(--t-sm); text-align: center; }
 .mcp__feedback { margin-top: var(--s3); padding: var(--s2) var(--s3); border-left: 3px solid; font-size: var(--t-sm); overflow-wrap: anywhere; }

@@ -10,7 +10,7 @@ const original = await readFile(file).catch(error => { if (error.code !== 'ENOEN
 const port = 19487
 let child, browser
 async function launch() {
-  child = spawn(resolve('src-tauri/target/release/all-right.exe'), [], { windowsHide: true,
+  child = spawn(resolve(process.env.ALLRIGHT_NATIVE_EXE ?? 'src-tauri/target/release/all-right.exe'), [], { windowsHide: true,
     env: { ...process.env, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port}` }, stdio: 'ignore' })
   for (let i = 0; i < 120; i++) {
     try {
@@ -34,20 +34,25 @@ async function kill() {
 try {
   await mkdir(directory, { recursive: true })
   const question = { id: 'q1', category: '测试', type: 'single', stem: '原生恢复测试', options: [{ key: 'A', text: '正确' }, { key: 'B', text: '错误' }], answer: ['A'], explanation: '解析', tags: [], difficulty: 1 }
-  await writeFile(file, JSON.stringify({ version: 2, banks: [{ id: 'b', name: '原生恢复', questions: [question], importedAt: 1 }], activeBankId: 'b', attempts: [], stats: {}, sessions: [] }))
+  await writeFile(file, JSON.stringify({ version: 2, banks: [{ id: 'b', name: '原生恢复', questions: [question, { ...question, id: 'q2', stem: '第二题恢复测试' }], importedAt: 1 }], activeBankId: 'b', attempts: [], stats: {}, sessions: [] }))
   let page = await launch()
   await page.evaluate(() => localStorage.setItem('allright.theme.v1', 'classic'))
   await page.reload()
   await page.locator('.rail__item').filter({ hasText: '练习' }).click()
-  await page.getByRole('button', { name: /^开始练习/ }).click()
+  await page.getByRole('button', { name: '按章节', exact: true }).click()
+  await page.locator('.chapter-entry').click()
+  await page.locator('.option__pick').nth(1).click()
+  await page.getByRole('button', { name: '下一题', exact: true }).click()
   await page.locator('.option__pick').nth(1).click()
   await page.waitForTimeout(1300)
   const before = JSON.parse(await readFile(file, 'utf8'))
   assert.deepEqual(before.activeSession.drafts.q1, ['B'])
+  assert.equal(before.activeSession.index, 1)
   await kill()
   await new Promise(resolve => setTimeout(resolve, 1600))
   page = await launch()
   await page.getByRole('button', { name: '继续练习', exact: true }).click()
+  assert.equal(await page.locator('.practice__counter').innerText(), '第 2 / 2 题')
   assert.equal(await page.locator('.option__pick[aria-pressed="true"]').count(), 1)
   await page.getByRole('button', { name: '确认答案', exact: true }).click()
   await page.waitForTimeout(1200)
@@ -56,6 +61,8 @@ try {
   await page.getByRole('button', { name: '继续练习', exact: true }).click()
   assert.match(await page.locator('.result__title').innerText(), /答错/)
   assert.equal(JSON.parse(await readFile(file, 'utf8')).attempts.length, 1)
+  await page.getByRole('button', { name: '上一题', exact: true }).click()
+  assert.equal(await page.locator('.option__pick[aria-pressed="true"]').count(), 1)
   console.log('PASS native process termination/relaunch: disk-backed drafts and answers, one attempt')
 } finally {
   await kill()

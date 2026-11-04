@@ -4,7 +4,7 @@ import { ArrowRight, Check, Left as ChevronLeft, Help as CircleHelp, Time as Clo
 import { useApp } from '../domain/store'
 import type { ActiveSession } from '../domain/store'
 import { collectWrongBook, formatDuration, formatPercent } from '../domain/stats'
-import { buildSession, isAnswerCorrect, newId } from '../domain/session'
+import { buildSession, isAnswerCorrect, newId, remainingChapterQuestions } from '../domain/session'
 import { collectAssetIds } from '../domain/content'
 import type { Question, SessionMode } from '../domain/types'
 import type { Route } from '../App'
@@ -666,9 +666,9 @@ function Summary({ summary, onNavigate }: { summary: PracticeSummary; onNavigate
                             <span className="chip">用时 {formatDuration(elapsedMs)}</span>
                             <span>{question.category}</span>
                           </p>
-                          {question.explanation ? (
+                          {question.explanation || question.explanationBlocks?.length ? (
                             <div className="explain__body" style={{ marginTop: 'var(--s2)', fontSize: 'var(--t-sm)' }}>
-                              <MathText text={question.explanation} />
+                              <QuestionContent blocks={question.explanationBlocks} fallback={question.explanation ?? ''} />
                             </div>
                           ) : null}
                         </div>
@@ -679,7 +679,7 @@ function Summary({ summary, onNavigate }: { summary: PracticeSummary; onNavigate
               </section>
             ) : (
               <div className="panel" style={{ marginTop: 'var(--s5)' }}>
-                <EmptyState title="这组全对" text="错题本是空的。换个分类继续练，或者去看板看看还有哪些知识点没碰过。" />
+                <EmptyState title="这组全对" text="本次没有新增错题。换个分类继续练，或者去看板看看还有哪些知识点没碰过。" />
               </div>
             )}
           </StudyPaper>
@@ -699,6 +699,7 @@ function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const { activeBank, workspace, startSession } = useApp()
   const [mode, setMode] = useState<SessionMode>('random')
   const [count, setCount] = useState(20)
+  const [chapterStart, setChapterStart] = useState<'continue' | 'restart'>('continue')
 
   const categories = useMemo(
     () => {
@@ -760,7 +761,7 @@ function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
       newId('s'),
     )
     if (!session.questionIds.length) return
-    startSession(session)
+    startSession(session, chapterStart === 'restart')
   }
 
   const canStart = pool.length > 0
@@ -791,10 +792,13 @@ function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
 
                 {mode === 'category' ? (
                   <section className="chapters" aria-label="章节入口">
+                    <Segmented options={[{ value: 'continue', label: '接着练' }, { value: 'restart', label: '从头重练' }]} value={chapterStart} onChange={setChapterStart} label="章节起点" />
                     <p className="field__label">选择章节，直接开始</p>
                     <div className="chapters__list">
                       {categories.map(({ name, total, practiced }, index) => {
-                        const chapterSize = count === 0 ? total : Math.min(count, total)
+                        const remaining = remainingChapterQuestions(activeBank, name, workspace)
+                        const available = chapterStart === 'continue' && remaining.length ? remaining.length : total
+                        const chapterSize = count === 0 ? available : Math.min(count, available)
                         return (
                           <ThemedButton
                             key={name}
@@ -806,9 +810,9 @@ function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
                             <span className="chapter-entry__number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
                             <span className="chapter-entry__body">
                               <span className="chapter-entry__name"><BookOpen size={16} aria-hidden="true" />{name}</span>
-                              <span className="chapter-entry__meta">共 {total} 题 · 已练 {practiced} 题</span>
+                              <span className="chapter-entry__meta">共 {total} 题 · 已练 {practiced} 题{chapterStart === 'continue' && remaining.length < total ? ` · ${remaining.length ? `剩余 ${remaining.length} 题` : '已练完'}` : ''}</span>
                             </span>
-                            <span className="chapter-entry__action">练 {chapterSize} 题<ArrowRight size={16} aria-hidden="true" /></span>
+                            <span className="chapter-entry__action">{chapterStart === 'continue' && remaining.length < total && remaining.length > 0 ? '继续未做' : '练'} {chapterSize} 题<ArrowRight size={16} aria-hidden="true" /></span>
                           </ThemedButton>
                         )
                       })}

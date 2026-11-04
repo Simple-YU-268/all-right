@@ -6,6 +6,7 @@ try {
   for (const theme of ['classic', 'looseleaf']) {
     const context = await browser.newContext()
     const page = await context.newPage()
+    page.on('dialog', dialog => dialog.accept())
     await page.goto(process.env.ALLRIGHT_TEST_URL ?? 'http://127.0.0.1:5180/')
     await page.evaluate(theme => {
       const questions = [1, 2].map(id => ({ id: `q${id}`, category: '恢复测试', type: 'single', stem: `题目 ${id}`, options: [{ key: 'A', text: '正确' }, { key: 'B', text: '错误' }], answer: ['A'], explanation: '解析', tags: [], difficulty: 1 }))
@@ -24,6 +25,21 @@ try {
     const pausedTime = await page.evaluate(() => JSON.parse(localStorage.getItem('allright.workspace.v1')).activeSession.elapsedMs)
     await page.waitForTimeout(1300)
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('allright.workspace.v1')).activeSession.elapsedMs), pausedTime, 'Away time is excluded')
+    const nav = page.getByRole('navigation').first()
+    await nav.getByRole(theme === 'classic' ? 'button' : 'tab', { name: '设置', exact: true }).click()
+    if (theme === 'looseleaf') await page.getByRole('tab', { name: '数据与隐私', exact: true }).click()
+    const downloaded = page.waitForEvent('download')
+    await page.getByRole('button', { name: '导出备份', exact: true }).click()
+    const download = await downloaded
+    const stream = await download.createReadStream()
+    const chunks = []
+    for await (const chunk of stream) chunks.push(chunk)
+    const backup = Buffer.concat(chunks)
+    const exported = JSON.parse(backup.toString('utf8'))
+    assert.deepEqual(exported.activeSession.drafts, { [exported.activeSession.questionIds[0]]: ['B'] }, 'Backup contains the current draft')
+    await page.getByLabel('选择工作区备份').setInputFiles({ name: 'resume-backup.json', mimeType: 'application/json', buffer: backup })
+    await page.getByRole('status').filter({ hasText: '已恢复' }).waitFor()
+    assert.equal(await page.evaluate(() => !!JSON.parse(localStorage.getItem('allright.workspace.v1')).activeSession), true, 'Restore retains unfinished practice')
     await page.reload()
     await page.getByRole('button', { name: '继续练习', exact: true }).click()
     assert.equal(await page.locator('.option__pick[aria-pressed="true"]').count(), 1)
@@ -47,7 +63,7 @@ try {
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('allright.workspace.v1')).attempts.length), 1)
     await context.close()
   }
-  console.log('PASS both themes: draft recovery, submitted-answer recovery, no duplicate attempts, partial settlement')
+  console.log('PASS both themes: backup export and restore, draft recovery, submitted-answer recovery, no duplicate attempts, partial settlement')
 } finally {
   await browser.close()
 }

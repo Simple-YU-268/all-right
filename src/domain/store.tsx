@@ -12,6 +12,7 @@ import { saveWorkspace } from './storage'
 import { saveChapter, deleteChapter, importChapters, type ChapterChange, type ChapterImport } from './chapters'
 import { pruneAssetsExcept, referencedAssetIds } from './assets'
 import { questionAssetIds } from './content'
+import { buildSession, remainingChapterQuestions } from './session'
 
 export interface ActiveSession {
   id: string
@@ -230,7 +231,7 @@ function reducer(state: State, action: Action): State {
       }
     }
     case 'replaceWorkspace':
-      return { ...state, workspace: action.workspace, session: null }
+      return { ...state, workspace: action.workspace, session: restoreSession(action.workspace) }
     case 'startSession':
       if (state.session) return state
       return { ...state, session: action.session, workspace: { ...state.workspace, activeBankId: action.session.bankId } }
@@ -258,7 +259,7 @@ export interface AppApi {
   removeFromWrongBook: (questionId: string) => void
   resetBank: (bankId: string) => void
   replaceWorkspace: (workspace: Workspace) => void
-  startSession: (session: ActiveSession) => void
+  startSession: (session: ActiveSession, fromStart?: boolean) => void
   updateSession: (session: ActiveSession) => void
   endSession: () => void
   clockSession: (paused?: boolean) => void
@@ -296,7 +297,7 @@ export function AppProvider({ children, initialWorkspace }: { children: ReactNod
 
   const api = useMemo<AppApi>(
     () => ({
-      workspace: state.workspace,
+      workspace: { ...state.workspace, activeSession: state.session },
       session: state.session,
       activeBank,
       addBank: (bank, assets) => dispatch({ type: 'addBank', bank, assets: assets ?? {} }),
@@ -335,7 +336,16 @@ export function AppProvider({ children, initialWorkspace }: { children: ReactNod
         dispatch({ type: 'replaceWorkspace', workspace })
         void pruneAssetsExcept(referencedAssetIds(workspace))
       },
-      startSession: (session) => dispatch({ type: 'startSession', session }),
+      startSession: (session, fromStart = false) => {
+        const bank = state.workspace.banks.find(bank => bank.id === session.bankId)
+        if (bank && session.mode !== 'wrong' && !fromStart) {
+          const remaining = remainingChapterQuestions(bank, session.mode === 'category' ? session.category : null, state.workspace)
+          if (remaining.length) {
+            session = buildSession(bank, { mode: session.mode, category: session.category, count: session.questionIds.length }, remaining, session.id)
+          }
+        }
+        dispatch({ type: 'startSession', session })
+      },
       updateSession: (session) => dispatch({ type: 'updateSession', session }),
       endSession: () => dispatch({ type: 'endSession' }),
       clockSession: (paused) => dispatch({ type: 'clockSession', paused }),

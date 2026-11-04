@@ -1,4 +1,4 @@
-import type { Bank, Question, SessionMode } from './types'
+import type { Bank, Question, SessionMode, Workspace } from './types'
 import type { ActiveSession } from './store'
 
 export function shuffle<T>(input: T[]): T[] {
@@ -20,6 +20,11 @@ export interface SessionPlan {
   mode: SessionMode
   category: string | null
   count: number
+}
+
+export function remainingChapterQuestions(bank: Bank, category: string | null, workspace: Workspace): Question[] {
+  const answered = new Set(workspace.attempts.filter(attempt => attempt.bankId === bank.id).map(attempt => attempt.questionId))
+  return bank.questions.filter(question => (category === null || question.category === category) && !answered.has(question.id))
 }
 
 export function buildSession(

@@ -27,10 +27,10 @@
 
 ## 🚀 快速开始
 
-当前版本 **v0.7.0**，支持 Windows x64。
+当前版本 **v0.7.1**，支持 Windows x64。
 
-- [下载安装包](https://github.com/Simple-YU-268/all-right/releases/download/v0.7.0/ALLRIGHT-Setup-0.7.0.exe)
-- [查看更新与校验文件](https://github.com/Simple-YU-268/all-right/releases/tag/v0.7.0)
+- [下载安装包](https://github.com/Simple-YU-268/all-right/releases/download/v0.7.1/ALLRIGHT-Setup-0.7.1.exe)
+- [查看更新与校验文件](https://github.com/Simple-YU-268/all-right/releases/tag/v0.7.1)
 
 安装后，在「题库」载入示例题库即可试用，也可以导入自己的文件。
 
@@ -64,7 +64,7 @@ v0.7.0 支持未完成练习恢复、错题复习范围与多选重刷，以及�
 | :---: | :---: |
 | ![手绘学习桌](docs/screenshots/theme-looseleaf-dashboard.png) | ![手绘练习](docs/screenshots/theme-looseleaf-practice.png) |
 
-纯文字题库使用 `.json`，带图题库使用 `.allright`。设置页提供可复制的 JSON 模板；具体格式见[题库说明](docs/guide.md#题库格式)。
+纯文字题库使用 `.json`，带图题库使用 `.allright`。在「设置 → Agent 与连接」可复制完整的题库包制作提示词，交给自己的 Agent 处理章节、图片和核对报告；具体格式见[题库说明](docs/guide.md#题库格式)。
 
 ### JSON 示例
 

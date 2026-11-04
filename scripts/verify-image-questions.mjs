@@ -127,9 +127,12 @@ try {
   await page.waitForTimeout(300)
   await page.getByRole('button', { name: '看本次结算', exact: true }).click()
   await page.locator('.summary').waitFor({ timeout: 8000 })
+  await page.locator('.wrongrow .explain__body .media__img').waitFor({ timeout: 5000 })
+  await rail('错题本').click()
+  await page.locator('.wrongrow .explain__body .media__img').waitFor({ timeout: 5000 })
 
   /* 5. 图片选项：点图不等于选答案 */
-  await page.getByRole('button', { name: '去看板' }).click()
+  await rail('看板').click()
   await page.waitForTimeout(300)
   await rail('练习').click()
   await page.waitForTimeout(300)
@@ -204,11 +207,10 @@ try {
   await page.getByRole('status').filter({ hasText: '已恢复' }).waitFor({ timeout: 8000 })
   assert.match(await page.getByRole('status').innerText(), /含 3 张图片/)
   await rail('练习').click()
-  await page.waitForTimeout(300)
-  await page.getByRole('button', { name: '按章节', exact: true }).click()
-  await page.locator('.chapter-entry').first().click()
+  await page.getByRole('button', { name: '继续练习', exact: true }).click()
   await page.waitForSelector('.media__img', { timeout: 8000 })
   assert.equal(await page.locator('.media--missing').count(), 0, '恢复后图片都能读了')
+  assert.equal(await page.locator('.option__pick[aria-pressed="true"]').count(), 1, '含图备份也恢复未提交选项')
 
   /* 9. 坏图在导入时就被挡下，不会混进题库 */
   await rail('题库').click()
@@ -226,6 +228,9 @@ try {
 
   assert.deepEqual(errors, [])
   console.log('PASS  图片题：题库包导入、题干与选项配图、放大预览、答题记录、图片选项不误选、完整备份与恢复、缺图拦截、坏图拒收')
+} catch (error) {
+  console.error(error)
+  throw error
 } finally {
   await browser.close()
 }

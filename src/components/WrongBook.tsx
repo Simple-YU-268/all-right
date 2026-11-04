@@ -222,10 +222,10 @@ export function WrongBook({ onNavigate }: { onNavigate: (route: Route) => void }
                             <span>连续答对 {last.consecutiveCorrect} 次</span>
                             <MasteryMark mastery={entry.mastery} />
                           </p>
-                          {entry.question.explanation ? (
-                            <p className="explain__body" style={{ marginTop: 'var(--s2)', fontSize: 'var(--t-sm)' }}>
-                              {entry.question.explanation}
-                            </p>
+                          {entry.question.explanation || entry.question.explanationBlocks?.length ? (
+                            <div className="explain__body" style={{ marginTop: 'var(--s2)', fontSize: 'var(--t-sm)' }}>
+                              <QuestionContent blocks={entry.question.explanationBlocks} fallback={entry.question.explanation ?? ''} />
+                            </div>
                           ) : null}
                         </div>
                         <div className="wrongrow__actions">
