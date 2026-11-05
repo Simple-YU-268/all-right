@@ -212,7 +212,7 @@ function reducer(state: State, action: Action): State {
             ...state.workspace.stats,
             [action.key]: {
               ...prev,
-              consecutiveCorrect: Math.max(1, prev.consecutiveCorrect),
+              wrongBookDismissed: true,
             },
           },
         },

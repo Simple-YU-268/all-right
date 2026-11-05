@@ -44,7 +44,7 @@ export function SessionHistory({ sessions, bankNames }: { sessions: SessionRecor
             <li key={session.id} className="history__row">
               <span className="history__mode">{MODE_LABEL[session.mode]}</span>
               <span className="history__scope">{session.category ?? bankNames.get(session.bankId) ?? '未知题库'}</span>
-              <span className="history__num">{session.answered} 题</span>
+              <span className="history__num">{session.answered} / {session.total} 题</span>
               <span className="history__num">{formatPercent(accuracy)}</span>
               {session.elapsedMs !== undefined ? <span className="history__num">{formatDuration(session.elapsedMs)}</span> : null}
               <time className="history__when" dateTime={new Date(when).toISOString()}>

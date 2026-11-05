@@ -9,7 +9,7 @@ export function masteryOf(stat: QuestionStat | undefined): Mastery {
 }
 
 export function isInWrongBook(stat: QuestionStat | undefined): boolean {
-  return !!stat && stat.attempts > 0 && stat.consecutiveCorrect === 0
+  return !!stat && stat.attempts > 0 && stat.consecutiveCorrect === 0 && !stat.wrongBookDismissed
 }
 
 export interface DayPoint {

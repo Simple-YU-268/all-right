@@ -21,6 +21,7 @@ const SORTS = [
 export function WrongBook({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const { workspace, activeBank, startSessionReplacing, removeFromWrongBook } = useApp()
   const [category, setCategory] = useState('')
+  const [questionType, setQuestionType] = useState('')
   const [sort, setSort] = useState<SortKey>('wrong')
   const [scope, setScope] = useState('pending')
   const [selected, setSelected] = useState<string[]>([])
@@ -53,13 +54,13 @@ export function WrongBook({ onNavigate }: { onNavigate: (route: Route) => void }
   }, [workspace.attempts, activeBank?.id])
 
   const shown = useMemo(() => {
-    const filtered = category ? entries.filter((e) => e.question.category === category) : entries
+    const filtered = entries.filter(e => (!category || e.question.category === category) && (!questionType || e.question.type === questionType))
     const sorted = [...filtered]
     if (sort === 'wrong') sorted.sort((a, b) => b.stat.wrongCount - a.stat.wrongCount || b.stat.lastAt - a.stat.lastAt)
     if (sort === 'recent') sorted.sort((a, b) => (lastWrong.get(b.question.id) ?? 0) - (lastWrong.get(a.question.id) ?? 0) || a.question.id.localeCompare(b.question.id))
     if (sort === 'category') sorted.sort((a, b) => a.question.category.localeCompare(b.question.category, 'zh-Hans-CN'))
     return sorted
-  }, [entries, category, sort, lastWrong])
+  }, [entries, category, questionType, sort, lastWrong])
   const selectedShown = shown.filter(entry => selected.includes(entry.question.id))
 
   const beginAll = () => {
@@ -140,6 +141,7 @@ export function WrongBook({ onNavigate }: { onNavigate: (route: Route) => void }
           </div>
 
           <div className="filters">
+            <label className="filters__field">题型<select className="select" aria-label="错题题型" value={questionType} onChange={event => { setQuestionType(event.target.value); setSelected([]) }}><option value="">全部题型</option><option value="single">单选</option><option value="multiple">多选</option><option value="judge">判断</option></select></label>
             <label className="filters__field">复习范围<select className="select" aria-label="复习范围" value={scope} onChange={event => { setScope(event.target.value); setSelected([]); setCategory('') }}>
               <option value="pending">待复习</option><option value="repeat">反复答错</option><option value="history">历史错题</option>
             </select></label>

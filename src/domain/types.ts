@@ -50,6 +50,7 @@ export interface AttemptRecord {
 }
 
 export interface QuestionStat {
+  wrongBookDismissed?: boolean
   questionId: string
   attempts: number
   correctCount: number

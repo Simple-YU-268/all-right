@@ -69,6 +69,7 @@ try {
     const sessions = await page.evaluate(() => JSON.parse(localStorage.getItem('allright.workspace.v1')).sessions)
     ok(sessions.length === 1, `${theme} 结算后留下一条练习记录`)
     ok(sessions[0]?.answered === 1, `${theme} 记录了答题数`)
+    ok(sessions[0]?.total === 2, `${theme} 提前结算仍保留计划题量`)
     ok(sessions[0]?.correct === 1, `${theme} 记录了答对数`)
     ok(typeof sessions[0]?.elapsedMs === 'number', `${theme} 记录了用时`)
 
