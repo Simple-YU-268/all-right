@@ -37,8 +37,14 @@ assert.equal(migrated.stats[statKey('beta', 'shared')].correctCount, 1)
 assert.ok(!('shared' in migrated.stats), '旧键被清掉了')
 assert.ok(migrated.stats[statKey('alpha', 'only-a')], '题号唯一的旧记录补回去了')
 console.log('PASS stat isolation: legacy stats split per bank by attempts')
-const scoped = { ...migrated.stats['beta::shared'], totalMs: 999 }
+const scoped = { ...migrated.stats[statKey('beta', 'shared')], totalMs: 999 }
 const mixed = migrateStats({ ...original, stats: { ...original.stats, 'beta::shared': scoped } })
-assert.deepEqual(mixed.stats['beta::shared'], scoped, '混合迁移保留已迁移状态')
+assert.deepEqual(mixed.stats[statKey('beta', 'shared')], scoped, '混合迁移保留已迁移状态')
 const complex = { ...original, banks: [{ ...original.banks[0], questions: [question('x::y', '一章')] }], attempts: [], stats: { 'x::y': { ...scoped, questionId: 'x::y' } } }
 assert.ok(migrateStats(complex).stats[statKey('alpha', 'x::y')], '带分隔符的旧题号仍可迁移')
+assert.notEqual(statKey('a::b', 'c'), statKey('a', 'b::c'), '组合键不能碰撞')
+const canonical = { ...scoped, consecutiveCorrect: 7 }
+const precedence = migrateStats({ ...original, stats: {
+  [statKey('beta', 'shared')]: canonical, 'beta::shared': scoped,
+} })
+assert.deepEqual(precedence.stats[statKey('beta', 'shared')], canonical, '新格式优先于旧作用域记录')

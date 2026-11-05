@@ -40,6 +40,7 @@ try {
       .getByRole(theme === 'classic' ? 'button' : 'tab', { name: new RegExp(`^${name}`) }).click()
 
     await nav('练习')
+    await page.getByRole('button', { name: '开始新练习', exact: true }).click()
     await page.getByRole('button', { name: /^开始练习/ }).click()
     await page.waitForTimeout(500)
     await page.locator('.option__pick').first().click()
@@ -54,6 +55,11 @@ try {
     ok(true, `${theme} 取消新练习保留进度与草稿`)
     await nav('练习')
     const resume = page.getByRole('button', { name: '继续练习', exact: true })
+    if (await resume.count()) {
+      await page.getByRole('button', { name: '开始新练习', exact: true }).click()
+      await page.getByRole('button', { name: '返回练习入口', exact: true }).click()
+      ok(await resume.count() === 1, `${theme} 新练习设置返回后仍可续答`)
+    }
     if (await resume.count()) await resume.click()
     await page.getByRole('button', { name: '确认答案', exact: true }).click()
     await page.waitForTimeout(600)
@@ -102,6 +108,7 @@ try {
 
     await page.locator('.rail__item').filter({ hasText: '练习' }).first().click()
     await page.waitForTimeout(300)
+    await page.getByRole('button', { name: '开始新练习', exact: true }).click()
     await page.getByRole('button', { name: /^开始练习/ }).click()
     await page.waitForTimeout(500)
     await page.locator('.option__pick').nth(1).click()

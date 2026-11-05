@@ -5,7 +5,7 @@ import type { AttemptRecord, QuestionStat, Workspace } from './types'
  * 只用题号做键会让 A 库的作答记到 B 库头上，错题本和掌握度全串。
  */
 export function statKey(bankId: string, questionId: string): string {
-  return `${bankId}::${questionId}`
+  return JSON.stringify([bankId, questionId])
 }
 
 /**
@@ -57,7 +57,8 @@ function questionBelongsToOtherBank(
 export function migrateStats(workspace: Workspace): Workspace {
   const entries = Object.entries(workspace.stats ?? {})
   const legacy = entries.filter(([key, stat]) => key === stat.questionId)
-  if (!legacy.length) return workspace
+  const canonicalKeys = new Set(workspace.banks.flatMap(bank => bank.questions.map(question => statKey(bank.id, question.id))))
+  if (entries.every(([key]) => canonicalKeys.has(key))) return workspace
 
   /* 先用作答记录重建每个题库自己的统计——attempts 一直带 bankId，是最可靠的来源。 */
   const stats: Record<string, QuestionStat> = {}
@@ -85,7 +86,16 @@ export function migrateStats(workspace: Workspace): Workspace {
   }
   // 已迁移的统计可能包含手动移出错题本等状态，不能用历史重建覆盖。
   for (const [key, stat] of entries) {
-    if (key !== stat.questionId) stats[key] = stat
+    if (canonicalKeys.has(key)) {
+      stats[key] = stat
+      continue
+    }
+    if (key === stat.questionId) continue
+    const owners = workspace.banks.filter(bank => key === `${bank.id}::${stat.questionId}`)
+    if (owners.length === 1) {
+      const nextKey = statKey(owners[0].id, stat.questionId)
+      if (!Object.hasOwn(workspace.stats, nextKey)) stats[nextKey] = stat
+    }
   }
   return { ...workspace, stats }
 }

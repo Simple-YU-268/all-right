@@ -83,11 +83,12 @@ function buildSummary(
 export function Practice({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const [theme] = useTheme()
   const [paletteOpen, setPaletteOpen] = useState(() => window.innerWidth > 920)
-  const { session, workspace, updateSession, endSession, finishSession, recordAttempt, clockSession, setActiveBank,
+  const { session, workspace, updateSession, finishSession, recordAttempt, clockSession, setActiveBank,
     sessionElapsed: readSessionElapsed, questionElapsed: readQuestionElapsed } = useApp()
   const activeBank = workspace.banks.find(bank => bank.id === (session?.bankId ?? workspace.activeBankId)) ?? null
   const [selected, setSelected] = useState<string[]>([])
   const [summary, setSummary] = useState<PracticeSummary | null>(null)
+  const [newPractice, setNewPractice] = useState(false)
   const [verdict, setVerdict] = useState<Verdict | null>(null)
   const [pending, setPending] = useState<{ target: number; deadline: number } | null>(null)
   const [, refreshClock] = useState(0)
@@ -108,6 +109,8 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
     setVerdict(null)
     setPending(null)
   }, [session?.id])
+
+  useEffect(() => { setNewPractice(false) }, [session?.id])
 
   const questions = useMemo(() => {
     if (!session || !activeBank) return []
@@ -165,7 +168,6 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
           correct: data.correct,
           elapsedMs: data.elapsedMs,
         })
-        endSession()
         return
       }
       setSelected(session.drafts?.[questions[target].id] ?? [])
@@ -178,7 +180,7 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
     }
     const timer = window.setTimeout(jump, delay)
     return () => window.clearTimeout(timer)
-  }, [pending, session, questions, updateSession, endSession])
+  }, [pending, session, questions, updateSession, finishSession])
 
   if (summary) {
     return <Summary summary={summary} onNavigate={onNavigate} />
@@ -188,11 +190,14 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
     return <PracticeStart onNavigate={onNavigate} />
   }
 
+  if (newPractice) return <PracticeStart onNavigate={onNavigate} initiallyOpen onBack={() => setNewPractice(false)} />
+
   if (session.paused) return <div className="content"><div className="content__inner"><StudyPaper className="practice">
     <h1 className="pagehead__title">继续未完成的练习</h1>
     <p>{activeBank.name} · 已答 {Object.keys(session.answers).length} / {questions.length} 题</p>
     <div className="practice__answer-actions">
       <ThemedButton className="btn btn--primary" onClick={() => { setActiveBank(session.bankId); clockSession(false) }}>继续练习</ThemedButton>
+      <ThemedButton className="btn" onClick={() => setNewPractice(true)}>开始新练习</ThemedButton>
       <ThemedButton className="btn" onClick={() => {
         const data = buildSummary(session, questions, Date.now(), readSessionElapsed())
         if (!data) return
@@ -209,7 +214,6 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
           correct: data.correct,
           elapsedMs: data.elapsedMs,
         })
-        endSession()
       }}>结束并结算</ThemedButton>
     </div>
   </StudyPaper></div></div>
@@ -236,7 +240,6 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
     setPending(null)
     setSummary(data)
     finishWithHistory(data)
-    endSession()
   }
 
   /** 结算并记一条练习历史：答了哪几道、对多少、花了多久。 */
@@ -764,11 +767,12 @@ const MODES = [
   { value: 'wrong' as SessionMode, label: '错题重刷' },
 ]
 
-function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
+function PracticeStart({ onNavigate, initiallyOpen = false, onBack }: { onNavigate: (route: Route) => void; initiallyOpen?: boolean; onBack?: () => void }) {
   const { activeBank, workspace, startSessionReplacing } = useApp()
   const [mode, setMode] = useState<SessionMode>('random')
   const [count, setCount] = useState(20)
   const [chapterStart, setChapterStart] = useState<'continue' | 'restart'>('continue')
+  const [open, setOpen] = useState(initiallyOpen)
 
   const categories = useMemo(
     () => {
@@ -850,9 +854,13 @@ function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
           <StudyPaper className="practice">
             <div className="panel">
               <div className="panel__body">
+                {!open ? <div className="practice__answer-actions">
+                  <ThemedButton className="btn btn--primary" onClick={() => setOpen(true)}>开始新练习</ThemedButton>
+                </div> : <>
+                <ThemedButton className="btn btn--ghost btn--sm" onClick={() => onBack ? onBack() : setOpen(false)}>返回练习入口</ThemedButton>
                 <p className="t-label">这次怎么练</p>
                 <div style={{ marginTop: 'var(--s3)' }}>
-                  <Segmented options={MODES} value={mode} onChange={setMode} label="练习方式" />
+                  <Segmented options={MODES.filter(option => option.value !== 'wrong')} value={mode} onChange={setMode} label="练习方式" />
                 </div>
 
                 <div className="field" style={{ marginTop: 'var(--s4)' }}>
@@ -907,6 +915,7 @@ function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
                     返回看板
                   </ThemedButton>
                 </div>
+                </>}
               </div>
             </div>
 

@@ -8,7 +8,7 @@ import { ThemedButton } from './ThemedButton'
 import { version as webVersion } from '../../package.json'
 
 export function AppUpdate() {
-  const { workspace, session, clockSession, sessionElapsed, questionElapsed } = useApp()
+  const { clockSession, snapshotWorkspace } = useApp()
   const [version, setVersion] = useState(webVersion)
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
@@ -48,12 +48,8 @@ export function AppUpdate() {
     setBusy(true)
     try {
       // 保存失败时禁止退出安装，避免丢失未完成练习。
-      const currentId = session?.questionIds[session.index]
-      await saveWorkspace({ ...workspace, activeSession: session ? {
-        ...session, paused: true, elapsedMs: sessionElapsed(),
-        elapsedByQuestion: currentId ? { ...session.elapsedByQuestion,
-          [currentId]: questionElapsed(currentId, session.answers[currentId]?.elapsedMs) } : session.elapsedByQuestion,
-      } : null })
+      const snapshot = snapshotWorkspace()
+      await saveWorkspace({ ...snapshot, activeSession: snapshot.activeSession ? { ...snapshot.activeSession, paused: true } : null })
       clockSession(true)
       let received = 0
       let total = 0

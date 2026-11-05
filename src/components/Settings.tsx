@@ -20,7 +20,7 @@ import { McpSettings } from './McpSettings'
 import { SessionHistory } from './SessionHistory'
 
 export function Settings({ onNavigate }: { onNavigate: (route: Route) => void }) {
-  const { workspace, replaceWorkspace } = useApp()
+  const { workspace, replaceWorkspace, snapshotWorkspace } = useApp()
   const [motion, setMotion] = useMotionPref()
   const [theme] = useTheme()
   const backupInput = useRef<HTMLInputElement>(null)
@@ -174,7 +174,7 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
                     type="button"
                     className="btn btn--sm"
                     onClick={() => {
-                      void buildWorkspaceBackup(workspace).then((backup) => {
+                      void buildWorkspaceBackup(snapshotWorkspace()).then((backup) => {
                         if (backup.isPack) downloadBinary(backup.filename, backup.bytes)
                         else downloadJson(backup.filename, JSON.parse(new TextDecoder().decode(backup.bytes)))
                       }).catch((error: unknown) => setBackupStatus(`导出失败：${String(error)}`))

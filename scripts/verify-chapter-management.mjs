@@ -32,7 +32,7 @@ const browser = await chromium.launch({
 })
 
 /* 统计键现在带题库：「题库::题号」。同名题在两个题库里各算各的。 */
-const statOf = (stats, bankId, questionId) => stats[`${bankId}::${questionId}`]
+const statOf = (stats, bankId, questionId) => stats[JSON.stringify([bankId, questionId])]
 const alphaStat = (questionId) => ({
   questionId, attempts: 1, correctCount: 0, wrongCount: 1, consecutiveCorrect: 0, lastAt: 100, totalMs: 500,
 })
@@ -71,6 +71,7 @@ try {
   const confirmNext = (accept) => page.once('dialog', (dialog) => accept ? dialog.accept() : dialog.dismiss())
 
   await navigate('练习')
+  await page.getByRole('button', { name: '开始新练习', exact: true }).click()
   await page.getByRole('button', { name: '按章节', exact: true }).click()
   await page.locator('.chapter-entry').first().click()
   await page.locator('.practice__counter').waitFor()
@@ -82,11 +83,11 @@ try {
   let current = await workspace()
   /* 改名不该动统计：键已经是「题库::题号」。 */
   assert.deepEqual(current.stats, {
-    'alpha::shared': alphaStat('shared'),
-    'alpha::a1': alphaStat('a1'),
-    'alpha::a2': alphaStat('a2'),
-    'alpha::b1': alphaStat('b1'),
-    'beta::shared': {
+    '["alpha","shared"]': alphaStat('shared'),
+    '["alpha","a1"]': alphaStat('a1'),
+    '["alpha","a2"]': alphaStat('a2'),
+    '["alpha","b1"]': alphaStat('b1'),
+    '["beta","shared"]': {
       questionId: 'shared', attempts: 1, correctCount: 0, wrongCount: 1, consecutiveCorrect: 0, lastAt: 100, totalMs: 500,
     },
   })
@@ -221,7 +222,7 @@ try {
   assert.equal(current.activeBankId, 'alpha')
   assert.deepEqual(current.attempts, original.attempts.filter((attempt) => attempt.bankId === 'beta'))
   assert.deepEqual(current.stats, {
-    'beta::shared': {
+    '["beta","shared"]': {
       questionId: 'shared', attempts: 1, correctCount: 0, wrongCount: 1, consecutiveCorrect: 0, lastAt: 100, totalMs: 500,
     },
   })
@@ -231,6 +232,7 @@ try {
   assert.equal((await workspace()).banks[0].questions.length, 1)
 
   await navigate('练习')
+  await page.getByRole('button', { name: '开始新练习', exact: true }).click()
   await page.getByRole('button', { name: '按章节', exact: true }).click()
   await page.locator('.chapter-entry').first().click()
   await navigate('题库')
@@ -261,7 +263,7 @@ try {
   assert.equal(new Set(current.banks[0].questions.map((entry) => entry.id)).size, 6)
   assert.deepEqual(current.banks[1], original.banks[1])
   assert.deepEqual(current.stats, {
-    'beta::shared': {
+    '["beta","shared"]': {
       questionId: 'shared', attempts: 1, correctCount: 0, wrongCount: 1, consecutiveCorrect: 0, lastAt: 100, totalMs: 500,
     },
   })

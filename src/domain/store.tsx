@@ -252,6 +252,7 @@ function reducer(state: State, action: Action): State {
       /* 练习历史：每次结算留一条，题库被删时一起清掉。 */
       return {
         ...state,
+        session: state.session?.id === action.record.id ? null : state.session,
         workspace: {
           ...state.workspace,
           sessions: [action.record, ...state.workspace.sessions.filter(record => record.id !== action.record.id)].slice(0, 200),
@@ -290,6 +291,7 @@ export interface AppApi {
   sessionElapsed: () => number
   /** 某道题已经走了多久。 */
   questionElapsed: (questionId: string, answeredMs?: number) => number
+  snapshotWorkspace: () => Workspace
 }
 
 const AppContext = createContext<AppApi | null>(null)
@@ -435,6 +437,8 @@ export function AppProvider({ children, initialWorkspace }: { children: ReactNod
       sessionElapsed: () => (clockRef.current ? sessionElapsed(clockRef.current) : 0),
       questionElapsed: (questionId, answeredMs) =>
         (clockRef.current ? currentQuestionElapsed(clockRef.current, questionId, answeredMs) : answeredMs ?? 0),
+      snapshotWorkspace: () => ({ ...state.workspace,
+        activeSession: state.session && clockRef.current ? commitClock(clockRef.current, state.session) : state.session }),
     }),
     [state.workspace, state.session, activeBank],
   )

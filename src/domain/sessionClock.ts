@@ -101,6 +101,6 @@ export function commitClock(clock: SessionClock, session: ActiveSession): Active
     clockAt: now,
     elapsedMs: sessionElapsed(clock),
     elapsedByQuestion,
-    questionStartedAt: clock.questionStartedAt,
+    questionStartedAt: now,
   }
 }

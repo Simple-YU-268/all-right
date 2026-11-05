@@ -16,6 +16,7 @@ try {
     await page.reload()
     if (theme === 'classic') await page.locator('.rail__item').filter({ hasText: '练习' }).click()
     else await page.locator('.study-nav').getByRole('tab', { name: '练习', exact: true }).click()
+    await page.getByRole('button', { name: '开始新练习', exact: true }).click()
     await page.getByRole('button', { name: /^开始练习/ }).click()
     await page.locator('.option__pick').nth(1).click()
     await page.waitForTimeout(1200)
