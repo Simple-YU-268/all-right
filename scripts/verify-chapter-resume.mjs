@@ -17,6 +17,9 @@ try {
       await page.reload()
       const nav = page.getByRole('navigation').first()
       await nav.getByRole(theme === 'classic' ? 'button' : 'tab', { name: '练习', exact: true }).click()
+      await page.getByRole('button', { name: '开始新练习', exact: true }).click()
+      await page.getByRole(theme === 'classic' ? 'button' : 'tab', { name: '全部', exact: true }).click()
+      assert.match(await page.getByRole('button', { name: /^开始练习/ }).innerText(), /31 题|30 题|29 题/)
       try {
         await page.getByRole(theme === 'classic' ? 'button' : 'tab', { name: '按章节', exact: true }).click({ timeout: 5000 })
       } catch (error) {
@@ -60,6 +63,21 @@ try {
     await page.getByRole(theme === 'classic' ? 'button' : 'tab', { name: '从头重练', exact: true }).click()
     await page.locator('.chapter-entry').click()
     assert.match(await page.locator('.practice__stem').innerText(), /第1题/)
+    await page.evaluate(() => {
+      const key = 'allright.workspace.v1'
+      const workspace = JSON.parse(localStorage.getItem(key))
+      workspace.activeSession = null
+      workspace.attempts = workspace.banks[0].questions.map(question => ({ id: `done-${question.id}`, bankId: 'b', questionId: question.id, chosen: ['A'], correct: true, at: 2, elapsedMs: 100 }))
+      localStorage.setItem(key, JSON.stringify(workspace))
+    })
+    await page.reload()
+    await page.getByRole('navigation').first().getByRole(theme === 'classic' ? 'button' : 'tab', { name: '练习', exact: true }).click()
+    await page.getByRole('button', { name: '开始新练习', exact: true }).click()
+    assert.equal(await page.getByRole('button', { name: /^开始练习/ }).isDisabled(), true)
+    await page.getByRole(theme === 'classic' ? 'button' : 'tab', { name: '按章节', exact: true }).click()
+    assert.equal(await page.locator('.chapter-entry').isDisabled(), true)
+    await page.getByRole(theme === 'classic' ? 'button' : 'tab', { name: '从头重练', exact: true }).click()
+    assert.equal(await page.locator('.chapter-entry').isEnabled(), true)
     await page.close()
   }
   console.log('PASS chapter continuation: historical attempts, wrong answers, bank isolation, partial settlement, reload, restart, both themes')

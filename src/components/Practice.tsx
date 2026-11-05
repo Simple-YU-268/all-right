@@ -819,13 +819,13 @@ function PracticeStart({ onNavigate, initiallyOpen = false, onBack }: { onNaviga
   const pool =
     mode === 'wrong'
       ? wrongPool.map((entry) => entry.question)
-      : activeBank.questions
+      : chapterStart === 'restart' ? activeBank.questions : remainingChapterQuestions(activeBank, null, workspace)
 
   const size = count === 0 ? pool.length : Math.min(count, pool.length)
 
   const begin = (category: string | null = null) => {
     const selectedPool = mode === 'category'
-      ? activeBank.questions.filter((question) => question.category === category)
+      ? pool.filter((question) => question.category === category)
       : pool
     if (!selectedPool.length) return
     const session = buildSession(
@@ -867,21 +867,23 @@ function PracticeStart({ onNavigate, initiallyOpen = false, onBack }: { onNaviga
                   <span className="field__label">题量</span>
                   <Segmented options={COUNTS} value={count} onChange={setCount} label="题量" />
                 </div>
+                <Segmented options={[{ value: 'continue', label: '接着练' }, { value: 'restart', label: '从头重练' }]} value={chapterStart} onChange={setChapterStart} label="练习起点" />
+                {!pool.length ? <p role="status" className="t-meta">未做题已全部完成，选择“从头重练”可再次练习。</p> : null}
 
                 {mode === 'category' ? (
                   <section className="chapters" aria-label="章节入口">
-                    <Segmented options={[{ value: 'continue', label: '接着练' }, { value: 'restart', label: '从头重练' }]} value={chapterStart} onChange={setChapterStart} label="章节起点" />
                     <p className="field__label">选择章节，直接开始</p>
                     <div className="chapters__list">
                       {categories.map(({ name, total, practiced }, index) => {
                         const remaining = remainingChapterQuestions(activeBank, name, workspace)
-                        const available = chapterStart === 'continue' && remaining.length ? remaining.length : total
+                        const available = chapterStart === 'continue' ? remaining.length : total
                         const chapterSize = count === 0 ? available : Math.min(count, available)
                         return (
                           <ThemedButton
                             key={name}
                             type="button"
                             className="chapter-entry"
+                            disabled={!available}
                             onClick={() => begin(name)}
                             aria-label={`${name}，共 ${total} 题，开始练习 ${chapterSize} 题`}
                           >
@@ -901,7 +903,7 @@ function PracticeStart({ onNavigate, initiallyOpen = false, onBack }: { onNaviga
 
                 <p className="t-meta" style={{ marginTop: 'var(--s4)', lineHeight: 1.7 }}>
                   {mode === 'random'
-                    ? '从整个题库随机抽题，不重复已练过的题优先。想练覆盖面时用这个。'
+                    ? `从${chapterStart === 'continue' ? '未做题' : '整个题库'}随机抽题，共 ${pool.length} 题可练。`
                     : mode === 'category'
                       ? '点击章节入口即可按所选题量开始，题目按题库顺序排列。'
                       : `只练错题本里的 ${wrongPool.length} 道题。答对一次就移出错题本。`}
