@@ -13,6 +13,9 @@
   display: grid;
   grid-template-columns: var(--rail-w) minmax(0, 1fr);
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .rail {
@@ -127,11 +130,17 @@
 }
 
 .main {
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   min-width: 0;
   background: var(--paper);
 }
+
+.app-update { display: grid; gap: 5px; padding-top: 14px; font-size: var(--t-xs); }
+.app-update__button { text-align: left; color: inherit; background: transparent; border: 0; padding: 4px 0; text-decoration: underline; text-underline-offset: 3px; }
+.app-update__status { overflow-wrap: anywhere; }
 
 .topbar {
   display: flex;

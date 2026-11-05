@@ -1,0 +1,86 @@
+import { useEffect, useRef, useState } from 'react'
+import { getVersion } from '@tauri-apps/api/app'
+import { check, type Update } from '@tauri-apps/plugin-updater'
+import { IS_TAURI } from '../domain/shell'
+import { useApp } from '../domain/store'
+import { saveWorkspace } from '../domain/storage'
+import { ThemedButton } from './ThemedButton'
+import { version as webVersion } from '../../package.json'
+
+export function AppUpdate() {
+  const { workspace, session, clockSession, sessionElapsed, questionElapsed } = useApp()
+  const [version, setVersion] = useState(webVersion)
+  const [status, setStatus] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [available, setAvailable] = useState<string | null>(null)
+  const update = useRef<Update | null>(null)
+  const lock = useRef(false)
+
+  const checkUpdate = async () => {
+    if (lock.current || !IS_TAURI) return
+    lock.current = true
+    setBusy(true)
+    setStatus('正在检查更新…')
+    try {
+      const next = await check({ timeout: 15000 })
+      await update.current?.close()
+      update.current = next
+      setAvailable(next?.version ?? null)
+      setStatus(next ? `发现 v${next.version}` : '已是最新版本')
+    } catch {
+      setStatus('检查失败，请重试')
+    } finally {
+      lock.current = false
+      setBusy(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!IS_TAURI) return
+    void getVersion().then(setVersion).catch(() => {})
+    void checkUpdate()
+    return () => { void update.current?.close() }
+  }, [])
+
+  const install = async () => {
+    if (lock.current || !update.current) return
+    lock.current = true
+    setBusy(true)
+    try {
+      // 保存失败时禁止退出安装，避免丢失未完成练习。
+      const currentId = session?.questionIds[session.index]
+      await saveWorkspace({ ...workspace, activeSession: session ? {
+        ...session, paused: true, elapsedMs: sessionElapsed(),
+        elapsedByQuestion: currentId ? { ...session.elapsedByQuestion,
+          [currentId]: questionElapsed(currentId, session.answers[currentId]?.elapsedMs) } : session.elapsedByQuestion,
+      } : null })
+      clockSession(true)
+      let received = 0
+      let total = 0
+      setStatus('正在下载更新…')
+      await update.current.downloadAndInstall(event => {
+        if (event.event === 'Started') total = event.data.contentLength ?? 0
+        if (event.event === 'Progress') {
+          received += event.data.chunkLength
+          setStatus(total ? `下载中 ${Math.min(100, Math.round(received / total * 100))}%` : `已下载 ${(received / 1048576).toFixed(1)} MB`)
+        }
+        if (event.event === 'Finished') setStatus('下载完成，正在安装…')
+      })
+    } catch {
+      setStatus('更新失败，点击重试；练习已暂停')
+    } finally {
+      lock.current = false
+      setBusy(false)
+    }
+  }
+
+  return <div className="app-update">
+    <span>当前版本 v{version}</span>
+    {IS_TAURI ? <>
+      <ThemedButton className="app-update__button" disabled={busy} onClick={() => void (available ? install() : checkUpdate())}>
+        {busy ? '请稍候…' : available ? `更新至 v${available}` : '检查更新'}
+      </ThemedButton>
+      <span className="app-update__status" role="status" aria-live="polite">{status}</span>
+    </> : <span>网页版</span>}
+  </div>
+}

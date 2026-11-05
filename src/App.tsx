@@ -16,6 +16,7 @@ import { WrongBook } from './components/WrongBook'
 import { Settings } from './components/Settings'
 import { useTheme } from './domain/theme'
 import { LooseleafApp } from './components/LooseleafApp'
+import { AppUpdate } from './components/AppUpdate'
 
 export type Route = 'dashboard' | 'practice' | 'banks' | 'wrong' | 'settings'
 
@@ -85,6 +86,7 @@ export function App() {
               ? `${activeBank.questions.length} 题 · ${new Set(activeBank.questions.map((q) => q.category)).size} 个分类`
               : `数据保存在本机${IS_DESKTOP ? '应用' : '浏览器'}`}
           </p>
+          <AppUpdate />
         </div>
       </aside>
 

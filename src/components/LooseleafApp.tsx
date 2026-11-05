@@ -19,6 +19,7 @@ import { Banks } from './Banks'
 import { WrongBook } from './WrongBook'
 import { Settings } from './Settings'
 import { MathText } from './MathText'
+import { AppUpdate } from './AppUpdate'
 
 const routes: { value: Route; label: string }[] = [
   { value: 'dashboard', label: '学习桌' }, { value: 'practice', label: '练习' },
@@ -50,6 +51,7 @@ export function LooseleafApp({ route, onNavigate }: { route: Route; onNavigate: 
             </Select> : <Button variant="outline" size="sm" onClick={() => onNavigate('banks')}><Upload size={15} />导入题库</Button>}
           </div>
         </header>
+        <footer className="study-update"><AppUpdate /></footer>
         <TabsContent value={route} className={`ll-stage ll-route-${route}`}>
           {route === 'dashboard' ? <StudyDesk onNavigate={onNavigate} />
             : route === 'practice' ? <Practice onNavigate={onNavigate} />

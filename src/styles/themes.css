@@ -1,4 +1,6 @@
 .theme-picker { min-width: 0; padding: 0 0 var(--s5); margin: 0 0 var(--s5); border: 0; border-bottom: 1px solid var(--rule); }
+.ll-ui .study-update { padding: 8px 36px; flex: 0 0 auto; }
+.ll-ui .study-update .app-update { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 0; }
 .ll-ui .viewer__tool { color: var(--ll-ink); background: var(--ll-slip); }
 .ll-ui .viewer__tool:hover:not(:disabled) { color: var(--ll-ink); background: var(--ll-paper); }
 .ll-ui .viewer__tool:disabled { color: var(--ll-pencil-text); background: var(--ll-slip); opacity: 0.65; }
@@ -57,7 +59,8 @@
   --ll-marker: #df6b3c;
 }
 .ll-ui :is(button, input, textarea, select):focus-visible { outline: 2px solid var(--ll-focus); outline-offset: 4px; }
-.ll-ui .ll-app { display: flex; flex-direction: column; min-height: 100dvh; gap: 0; background: var(--ll-desk); color: var(--ll-ink); font-family: var(--font-hand); font-size: 16px; }
+.ll-ui .ll-app { display: flex; flex-direction: column; height: 100dvh; min-height: 0; overflow: hidden; gap: 0; background: var(--ll-desk); color: var(--ll-ink); font-family: var(--font-hand); font-size: 16px; }
+.ll-ui .ll-stage { min-height: 0; overflow-y: auto; flex: 1 1 0; }
 .ll-ui .study-header { display: flex; align-items: center; flex-wrap: wrap; gap: 28px; padding: 20px 36px 0; max-width: 1512px; width: 100%; margin: 0 auto; }
 .ll-ui .study-brand { display: flex; align-items: baseline; gap: 10px; color: var(--ll-ink); background: transparent; border: 0; flex-shrink: 0; padding: 0 0 15px; }
 .ll-ui .study-brand > span { font-family: 'Kevin Sans', cursive; font-size: 31px; line-height: 1; white-space: nowrap; }
