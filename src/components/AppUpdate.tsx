@@ -6,6 +6,7 @@ import { useApp } from '../domain/store'
 import { saveWorkspace } from '../domain/storage'
 import { ThemedButton } from './ThemedButton'
 import { version as webVersion } from '../../package.json'
+import { runUpdate, updateErrorMessage, type UpdateStage } from '../domain/updateFlow'
 
 export function AppUpdate() {
   const { clockSession, snapshotWorkspace } = useApp()
@@ -46,24 +47,31 @@ export function AppUpdate() {
     if (lock.current || !update.current) return
     lock.current = true
     setBusy(true)
+    let stage: UpdateStage = 'save'
     try {
       // 保存失败时禁止退出安装，避免丢失未完成练习。
       const snapshot = snapshotWorkspace()
-      await saveWorkspace({ ...snapshot, activeSession: snapshot.activeSession ? { ...snapshot.activeSession, paused: true } : null })
-      clockSession(true)
       let received = 0
       let total = 0
-      setStatus('正在下载更新…')
-      await update.current.downloadAndInstall(event => {
-        if (event.event === 'Started') total = event.data.contentLength ?? 0
-        if (event.event === 'Progress') {
-          received += event.data.chunkLength
-          setStatus(total ? `下载中 ${Math.min(100, Math.round(received / total * 100))}%` : `已下载 ${(received / 1048576).toFixed(1)} MB`)
-        }
-        if (event.event === 'Finished') setStatus('下载完成，正在安装…')
+      const next = update.current
+      await runUpdate({
+        save: () => saveWorkspace({ ...snapshot, activeSession: snapshot.activeSession ? { ...snapshot.activeSession, paused: true } : null }),
+        pause: () => clockSession(true),
+        download: async () => {
+          stage = 'download'
+          setStatus('正在下载更新…')
+          await next.download(event => {
+            if (event.event === 'Started') total = event.data.contentLength ?? 0
+            if (event.event === 'Progress') {
+              received += event.data.chunkLength
+              setStatus(total ? `下载中 ${Math.min(100, Math.round(received / total * 100))}%` : `已下载 ${(received / 1048576).toFixed(1)} MB`)
+            }
+          }, { timeout: 60000 })
+        },
+        install: async () => { stage = 'install'; setStatus('校验完成，正在安装…'); await next.install() },
       })
-    } catch {
-      setStatus('更新失败，点击重试；练习已暂停')
+    } catch (error) {
+      setStatus(updateErrorMessage(error, stage))
     } finally {
       lock.current = false
       setBusy(false)

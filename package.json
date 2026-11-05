@@ -1,7 +1,7 @@
 {
   "name": "all-right",
   "private": true,
-  "version": "0.8.6",
+  "version": "0.8.7",
   "type": "module",
   "description": "ALL RIGHT 全对 · 电子刷题台：导入 JSON 题库，按分类或随机抽题，错题自动收进错题本，看板追踪进度与正确率。",
   "author": "ALL RIGHT 全对",
