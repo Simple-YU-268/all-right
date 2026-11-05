@@ -12,6 +12,7 @@ export interface ParseIssue {
 }
 
 export interface ParsedBank {
+  sourceCount?: number
   sourceIndices?: number[]
   name: string
   questions: Question[]
@@ -331,7 +332,7 @@ export function parseBank(raw: unknown, fallbackName = '未命名题库', option
   ]
   const kept = dropBrokenQuestions(valid, sourceIndices, structural)
   issues.push(...kept.issues.map((issue) => ({ ...issue })))
-  return { name: bankName, questions: kept.questions, issues, warnings, valid: kept.questions, sourceIndices: kept.sourceIndices }
+  return { name: bankName, questions: kept.questions, issues, warnings, valid: kept.questions, sourceIndices: kept.sourceIndices, sourceCount: rawQuestions.length }
 }
 
 export function readBankFile(text: string, fallbackName: string, options: ParseOptions = {}): ParsedBank {

@@ -61,9 +61,15 @@ export function PreviewStats({ parsed, imageCount = 0 }: { parsed: ParsedBank; i
 }
 
 export function PreviewIssues({ parsed }: { parsed: ParsedBank }) {
-  if (!parsed.issues.length && !parsed.warnings.length) return null
+  const accepted = new Set(parsed.sourceIndices ?? [])
   return (
     <>
+      {parsed.sourceCount !== undefined ? <details className="chapter-distribution">
+        <summary>源题对账：{parsed.sourceCount} 题 = 可导入 {parsed.valid.length} 题 + 待处理 {parsed.sourceCount - parsed.valid.length} 题</summary>
+        <ul aria-label="逐题校验报告">{Array.from({ length: parsed.sourceCount }, (_, index) => <li key={index}>
+          <span>源题 {index + 1}</span><span>{accepted.has(index) ? '可导入' : parsed.issues.filter(issue => issue.index === index + 1).map(issue => `${issue.field}：${issue.message}`).join('；') || '未通过校验'}</span>
+        </li>)}</ul>
+      </details> : null}
       {parsed.issues.length > 0 ? (
         <div className="issues">
           <p className="t-label" style={{ color: 'var(--wrong)', marginBottom: 'var(--s2)' }}>

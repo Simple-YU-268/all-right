@@ -2,7 +2,7 @@ import { ThemedButton } from './ThemedButton'
 import { useCallback, useEffect, useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { CheckOne, Download, Refresh } from '@icon-park/react'
-import { IS_TAURI } from '../domain/shell'
+import { IS_TAURI, confirmAction } from '../domain/shell'
 import { readBankFile } from '../domain/parseBank'
 import BANK_JSON_SCHEMA from '../domain/bankSchema.json'
 import { BANK_PACK_PROMPT } from '../domain/bankPackPrompt'
@@ -70,8 +70,9 @@ export function McpSettings() {
     }
   }
 
-  const importSelected = () => {
+  const importSelected = async () => {
     if (!selected?.parsed.valid.length) return
+    if (selected.parsed.issues.length && !await confirmAction(`仅导入 ${selected.parsed.valid.length} 道可用题？${selected.parsed.sourceCount === undefined ? '部分源题' : `${selected.parsed.sourceCount - selected.parsed.valid.length} 道源题`}未通过，将不会导入。请保留原文件并按报告修正。`)) return
     const bank: Bank = {
       id: `bank-${Date.now().toString(36)}`,
       name: selected.parsed.name,

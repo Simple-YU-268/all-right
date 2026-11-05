@@ -79,6 +79,7 @@ try {
   await page.waitForFunction(() => window.nativeCalls.some((call) => call.command === 'save_workspace'))
   assert.equal(await page.evaluate(() => window.nativeCalls.filter((call) => call.command === 'save_workspace').every((call) => JSON.parse(call.args.data).banks.length === 1)), true)
   await navigate('练习')
+  await page.getByRole('button', { name: '开始新练习', exact: true }).click()
   await page.getByRole('button', { name: '按章节', exact: true }).click()
   await page.locator('.chapter-entry').click()
   await page.getByRole('button', { name: /错误选项/ }).click()

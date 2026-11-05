@@ -95,6 +95,7 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
 
   const commit = async () => {
     if (!pending || !pending.parsed.valid.length || busy) return
+    if (pending.parsed.issues.length && !await confirmAction(`仅导入 ${pending.parsed.valid.length} 道可用题？${pending.parsed.sourceCount === undefined ? '部分源题' : `${pending.parsed.sourceCount - pending.parsed.valid.length} 道源题`}未通过，将不会导入。请保留原文件并按报告修正。`)) return
     setBusy(true)
     try {
       /* 图片先落盘：存不下就别导题库，免得出现「题库在、图没了」。 */
@@ -279,7 +280,7 @@ export function Banks({ onNavigate }: { onNavigate: (route: Route) => void }) {
                   </ThemedButton>
                   {pending.parsed.issues.length > 0 && pending.parsed.valid.length > 0 ? (
                     <span className="t-meta" style={{ marginLeft: 'auto', alignSelf: 'center' }}>
-                      有问题的题目会被跳过，其余照常导入
+                      部分导入需再次确认，未通过题不会导入
                     </span>
                   ) : null}
                 </div>
