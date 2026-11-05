@@ -9,6 +9,7 @@ import {
 } from '../domain/assets'
 import type { ContentBlock } from '../domain/types'
 import { MathText } from './MathText'
+import { ThemedButton } from './ThemedButton'
 
 /** 图片准备好了没有：题干的图要等齐，解析的图可以慢慢来。 */
 export function useAssetUrl(assetId: string): { url: string | null; status: 'loading' | 'ready' | 'error' } {
@@ -29,6 +30,10 @@ export function useAssetUrl(assetId: string): { url: string | null; status: 'loa
         markAssetMissing(assetId)
         setState({ url: null, status: 'error' })
       }
+    }).catch(() => {
+      if (!active) return
+      markAssetMissing(assetId)
+      setState({ url: null, status: 'error' })
     })
     return () => { active = false }
   }, [assetId])
@@ -50,8 +55,9 @@ export function useMissingAssets(assetIds: string[]): boolean {
 export function MediaFigure({ block }: { block: Extract<ContentBlock, { type: 'image' }> }) {
   const { url, status } = useAssetUrl(block.assetId)
   const [open, setOpen] = useState(false)
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
 
-  if (status === 'error') {
+  if (status === 'error' || (url !== null && failedUrl === url)) {
     return (
       <figure className="media media--missing">
         <div className="media__missing" role="img" aria-label={block.alt}>
@@ -70,9 +76,10 @@ export function MediaFigure({ block }: { block: Extract<ContentBlock, { type: 'i
         className="media__frame"
         onClick={() => setOpen(true)}
         aria-label={`放大查看：${block.alt}`}
+        disabled={status !== 'ready'}
       >
         {url ? (
-          <img className="media__img" src={url} alt={block.alt} />
+          <img className="media__img" src={url} alt={block.alt} onError={() => { setFailedUrl(url); markAssetMissing(block.assetId) }} />
         ) : (
           <span className="media__loading">图片加载中…</span>
         )}
@@ -140,16 +147,30 @@ export function splitOptionBlocks(blocks?: ContentBlock[]): {
 export function ImageViewer({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
   const [scale, setScale] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
-  const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const drag = useRef<{ pointerId: number; x: number; y: number; ox: number; oy: number } | null>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
   const restoreRef = useRef<HTMLElement | null>(null)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
 
   useEffect(() => {
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     restoreRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     closeRef.current?.focus()
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Tab') {
+        const controls = Array.from(dialogRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])
+        const first = controls[0]
+        const last = controls[controls.length - 1]
+        if (first && last && (event.shiftKey ? document.activeElement === first : document.activeElement === last)) {
+          event.preventDefault()
+          ;(event.shiftKey ? last : first).focus()
+        }
+        return
+      }
       if (event.key === 'Escape') {
         event.preventDefault()
         onCloseRef.current()
@@ -166,10 +187,15 @@ export function ImageViewer({ src, alt, onClose }: { src: string; alt: string; o
     }
     document.addEventListener('keydown', onKeyDown, true)
     return () => {
+      document.body.style.overflow = overflow
       document.removeEventListener('keydown', onKeyDown, true)
       restoreRef.current?.focus?.()
     }
   }, [])
+
+  useEffect(() => {
+    if (scale === 1) setOffset({ x: 0, y: 0 })
+  }, [scale])
 
   const reset = () => {
     setScale(1)
@@ -179,6 +205,7 @@ export function ImageViewer({ src, alt, onClose }: { src: string; alt: string; o
   return (
     <div
       className="viewer"
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label={`图片预览：${alt}`}
@@ -189,42 +216,46 @@ export function ImageViewer({ src, alt, onClose }: { src: string; alt: string; o
       <div className="viewer__bar">
         <p className="viewer__title">{alt}</p>
         <div className="viewer__tools">
-          <button
+          <ThemedButton
             type="button"
             className="btn btn--sm viewer__tool"
             onClick={() => setScale((value) => Math.max(1, value - 0.5))}
             disabled={scale <= 1}
             aria-label="缩小"
+            title="缩小"
           >
             <ZoomOut size={13} strokeWidth={2} aria-hidden="true" />
-          </button>
+          </ThemedButton>
           <span className="viewer__scale t-data">{Math.round(scale * 100)}%</span>
-          <button
+          <ThemedButton
             type="button"
             className="btn btn--sm viewer__tool"
             onClick={() => setScale((value) => Math.min(4, value + 0.5))}
             disabled={scale >= 4}
             aria-label="放大"
+            title="放大"
           >
             <ZoomIn size={13} strokeWidth={2} aria-hidden="true" />
-          </button>
-          <button type="button" className="btn btn--sm viewer__tool" onClick={reset}>
+          </ThemedButton>
+          <ThemedButton type="button" className="btn btn--sm viewer__tool" onClick={reset} disabled={scale === 1 && offset.x === 0 && offset.y === 0}>
             还原
-          </button>
-          <button
+          </ThemedButton>
+          <ThemedButton
             ref={closeRef}
             type="button"
             className="btn btn--sm viewer__tool viewer__close"
             onClick={() => onCloseRef.current()}
             aria-label="关闭预览"
+            title="关闭预览"
           >
             <X size={13} strokeWidth={2.2} aria-hidden="true" />
-          </button>
+          </ThemedButton>
         </div>
       </div>
       <div className="viewer__stage">
         <img
           className="viewer__img"
+          data-dragging={dragging || undefined}
           src={src}
           alt={alt}
           style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` }}
@@ -235,22 +266,27 @@ export function ImageViewer({ src, alt, onClose }: { src: string; alt: string; o
             if (next <= 1) setOffset({ x: 0, y: 0 })
           }}
           onPointerDown={(event) => {
-            if (scale <= 1) return
-            drag.current = { x: event.clientX, y: event.clientY, ox: offset.x, oy: offset.y }
+            if (scale <= 1 || drag.current || event.button !== 0) return
+            drag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, ox: offset.x, oy: offset.y }
+            setDragging(true)
             event.currentTarget.setPointerCapture(event.pointerId)
           }}
           onPointerMove={(event) => {
             const state = drag.current
-            if (!state) return
+            if (!state || state.pointerId !== event.pointerId) return
             setOffset({
               x: state.ox + (event.clientX - state.x),
               y: state.oy + (event.clientY - state.y),
             })
           }}
           onPointerUp={(event) => {
+            if (drag.current?.pointerId !== event.pointerId) return
             drag.current = null
-            event.currentTarget.releasePointerCapture(event.pointerId)
+            setDragging(false)
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
           }}
+          onLostPointerCapture={() => { drag.current = null; setDragging(false) }}
+          onPointerCancel={() => { drag.current = null; setDragging(false) }}
           draggable={false}
         />
       </div>

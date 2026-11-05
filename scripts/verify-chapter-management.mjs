@@ -31,6 +31,12 @@ const browser = await chromium.launch({
   headless: true,
 })
 
+/* 统计键现在带题库：「题库::题号」。同名题在两个题库里各算各的。 */
+const statOf = (stats, bankId, questionId) => stats[`${bankId}::${questionId}`]
+const alphaStat = (questionId) => ({
+  questionId, attempts: 1, correctCount: 0, wrongCount: 1, consecutiveCorrect: 0, lastAt: 100, totalMs: 500,
+})
+
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, locale: 'zh-CN' })
   const errors = []
@@ -74,7 +80,16 @@ try {
   await editor.getByLabel('章节名称', { exact: true }).fill('第一章 已改名')
   await save()
   let current = await workspace()
-  assert.deepEqual(current.stats, original.stats)
+  /* 改名不该动统计：键已经是「题库::题号」。 */
+  assert.deepEqual(current.stats, {
+    'alpha::shared': alphaStat('shared'),
+    'alpha::a1': alphaStat('a1'),
+    'alpha::a2': alphaStat('a2'),
+    'alpha::b1': alphaStat('b1'),
+    'beta::shared': {
+      questionId: 'shared', attempts: 1, correctCount: 0, wrongCount: 1, consecutiveCorrect: 0, lastAt: 100, totalMs: 500,
+    },
+  })
   assert.deepEqual(current.attempts, original.attempts)
   assert.equal(current.sessions[0].category, '第一章 已改名')
   assert.deepEqual([...new Set(current.banks[0].questions.map((entry) => entry.category))], ['第一章 已改名', '第二章'])
@@ -107,10 +122,14 @@ try {
   current = await workspace()
   assert.equal(current.banks[0].questions.length, 3)
   assert.equal(current.banks[0].questions.find((entry) => entry.stem.includes('shared')).id, 'shared~2')
-  assert.deepEqual(current.stats.shared, original.stats.shared)
-  assert.deepEqual(current.stats.b1, original.stats.b1)
-  assert.equal(current.stats.a1, undefined)
-  assert.equal(current.stats.a2, undefined)
+  /* 甲库的 shared 改了题干，它的统计要作废；乙库的同名题不受影响。 */
+  assert.equal(statOf(current.stats, 'alpha', 'shared'), undefined)
+  assert.deepEqual(statOf(current.stats, 'beta', 'shared'), {
+    questionId: 'shared', attempts: 1, correctCount: 0, wrongCount: 1, consecutiveCorrect: 0, lastAt: 100, totalMs: 500,
+  })
+  assert.deepEqual(statOf(current.stats, 'alpha', 'b1'), alphaStat('b1'))
+  assert.equal(statOf(current.stats, 'alpha', 'a1'), undefined)
+  assert.equal(statOf(current.stats, 'alpha', 'a2'), undefined)
   assert.deepEqual(current.attempts.map((attempt) => attempt.id), ['attempt-b1', 'other-attempt'])
   await navigate('练习')
   assert.equal(await page.locator('.practice__counter').count(), 0)
@@ -132,7 +151,7 @@ try {
   await upload({ questions: [{ ...current.banks[0].questions.find((entry) => entry.id === 'b1'), category: '外部章节', explanation: '仅修订解析' }] })
   await save()
   current = await workspace()
-  assert.deepEqual(current.stats.b1, original.stats.b1)
+  assert.deepEqual(statOf(current.stats, 'alpha', 'b1'), alphaStat('b1'))
   assert.equal(current.banks[0].questions.find((entry) => entry.id === 'b1').explanation, '仅修订解析')
 
   await bank.getByRole('button', { name: '导入章节', exact: true }).click()
@@ -181,8 +200,10 @@ try {
   await row('第一章 已改名').waitFor({ state: 'detached' })
   current = await workspace()
   assert.deepEqual(current.banks[1], original.banks[1])
-  assert.deepEqual(current.stats.shared, original.stats.shared)
-  assert.deepEqual(current.stats.b1, original.stats.b1)
+  assert.deepEqual(statOf(current.stats, 'beta', 'shared'), {
+    questionId: 'shared', attempts: 1, correctCount: 0, wrongCount: 1, consecutiveCorrect: 0, lastAt: 100, totalMs: 500,
+  })
+  assert.deepEqual(statOf(current.stats, 'alpha', 'b1'), alphaStat('b1'))
   assert.equal(current.sessions.length, 1)
   assert.equal(current.sessions[0].category, '第二章')
   await page.reload()
@@ -199,7 +220,11 @@ try {
   assert.equal(current.banks[0].questions.length, 0)
   assert.equal(current.activeBankId, 'alpha')
   assert.deepEqual(current.attempts, original.attempts.filter((attempt) => attempt.bankId === 'beta'))
-  assert.deepEqual(current.stats, { shared: original.stats.shared })
+  assert.deepEqual(current.stats, {
+    'beta::shared': {
+      questionId: 'shared', attempts: 1, correctCount: 0, wrongCount: 1, consecutiveCorrect: 0, lastAt: 100, totalMs: 500,
+    },
+  })
   await bank.getByRole('button', { name: '导入章节', exact: true }).click()
   await upload({ questions: [question('fresh', '恢复新章')] })
   await save()
@@ -235,7 +260,11 @@ try {
   assert.equal(current.banks[0].questions.find((entry) => entry.category === '批量乙章').id, 'q1~2')
   assert.equal(new Set(current.banks[0].questions.map((entry) => entry.id)).size, 6)
   assert.deepEqual(current.banks[1], original.banks[1])
-  assert.deepEqual(current.stats, { shared: original.stats.shared })
+  assert.deepEqual(current.stats, {
+    'beta::shared': {
+      questionId: 'shared', attempts: 1, correctCount: 0, wrongCount: 1, consecutiveCorrect: 0, lastAt: 100, totalMs: 500,
+    },
+  })
   assert.deepEqual(current.attempts, original.attempts.filter((attempt) => attempt.bankId === 'beta'))
   await navigate('练习')
   await page.getByRole('button', { name: '继续练习', exact: true }).click()

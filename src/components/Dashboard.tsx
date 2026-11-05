@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { ArrowRight, Refresh as RefreshCw, CloseSmall as X } from '@icon-park/react'
 import { useApp } from '../domain/store'
 import { collectWrongBook, computeDashboard, dayLabel, formatDuration, formatPercent } from '../domain/stats'
@@ -25,7 +25,7 @@ function volumeInk(count: number): string {
 }
 
 export function Dashboard({ onNavigate }: { onNavigate: (route: Route) => void }) {
-  const { workspace, activeBank, startSession } = useApp()
+  const { workspace, activeBank, startSessionReplacing } = useApp()
   const [count, setCount] = useState(20)
 
   const data = useMemo(() => computeDashboard(activeBank, workspace), [activeBank, workspace])
@@ -44,7 +44,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (route: Route) => void }
       newId('s'),
     )
     if (!session.questionIds.length) return
-    startSession(session)
+    startSessionReplacing(session)
     onNavigate('practice')
   }
 
@@ -132,7 +132,7 @@ function DashboardBody({
   totalTime,
   onNavigate,
 }: DashboardBodyProps) {
-  const { activeBank, startSession } = useApp()
+  const { activeBank, startSessionReplacing } = useApp()
 
   return (
     <div className="content">
@@ -198,7 +198,7 @@ function DashboardBody({
               pool,
               newId('s'),
             )
-            startSession(session)
+            startSessionReplacing(session)
             onNavigate('practice')
           }}
         />
@@ -226,7 +226,7 @@ function DashboardPanels({
   onNavigate,
   onCategory,
 }: DashboardPanelsProps) {
-  const { activeBank, startSession } = useApp()
+  const { activeBank, startSessionReplacing } = useApp()
   const halfDaily = Math.round(maxDaily / 2)
 
   const beginWrong = () => {
@@ -239,7 +239,7 @@ function DashboardPanels({
       pool,
       newId('s'),
     )
-    startSession(session)
+    startSessionReplacing(session)
     onNavigate('practice')
   }
 

@@ -71,6 +71,8 @@ export interface SessionRecord {
   total: number
   answered: number
   correct: number
+  /** 本组一共花了多久（毫秒）。 */
+  elapsedMs?: number
 }
 
 export interface Workspace {

@@ -1,4 +1,5 @@
 import type { Question, Workspace } from './types'
+import { statKey } from './statKey'
 
 export interface ChapterChange {
   bankId: string
@@ -41,6 +42,9 @@ function updateQuestions(
   ])
   const stats = { ...workspace.stats }
   for (const questionId of invalidatedIds) {
+    /* 统计是按题库分的：只清这个题库里这道题的记录。 */
+    delete stats[statKey(bankId, questionId)]
+    /* 老数据里没有题库维度：这道题在别的题库里也出现时不能乱清。 */
     if (!otherQuestionIds.has(questionId)) delete stats[questionId]
   }
   return {
@@ -77,7 +81,9 @@ export function saveChapter(workspace: Workspace, change: ChapterChange): Chapte
     .filter((question) => entry.id !== bank.id || question.category !== change.category).map((question) => question.id)))
   const usedIds = new Set([
     ...workspace.banks.flatMap((entry) => entry.questions.map((question) => question.id)),
-    ...Object.keys(workspace.stats), ...workspace.attempts.map((attempt) => attempt.questionId),
+    /* 统计键现在是「题库::题号」，去重只看题号那一段。 */
+    ...Object.values(workspace.stats).map((stat) => stat.questionId),
+    ...workspace.attempts.map((attempt) => attempt.questionId),
   ])
   const invalidatedIds = new Set<string>()
   const retainedIds = new Set<string>()

@@ -17,6 +17,7 @@ import { CopyButton } from './bits'
 import { ChapterGuide } from './ChapterGuide'
 import { MathGuide } from './MathGuide'
 import { McpSettings } from './McpSettings'
+import { SessionHistory } from './SessionHistory'
 
 export function Settings({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const { workspace, replaceWorkspace } = useApp()
@@ -200,6 +201,13 @@ export function Settings({ onNavigate }: { onNavigate: (route: Route) => void })
                   </ThemedButton>
                 </div>
                 {backupStatus ? <p className="t-meta settings__note" role="status">{backupStatus}</p> : null}
+                <details className="settings-disclosure">
+                  <summary>练习历史（{workspace.sessions.length}）</summary>
+                  <SessionHistory
+                    sessions={workspace.sessions}
+                    bankNames={new Map(workspace.banks.map((bank) => [bank.id, bank.name]))}
+                  />
+                </details>
                 <div className="settings-danger"><div><h3>清空工作区</h3><p>删除全部题库、练习记录和错题，无法撤销。</p></div><ThemedButton type="button" className="btn btn--sm btn--danger" onClick={clearAll}>清空本机数据</ThemedButton></div>
               </div>
             </section>

@@ -1,4 +1,5 @@
 import type { AttemptRecord, Bank, Mastery, Question, QuestionStat, Workspace } from './types'
+import { statOf } from './statKey'
 
 export function masteryOf(stat: QuestionStat | undefined): Mastery {
   if (!stat || stat.attempts === 0) return 0
@@ -104,7 +105,7 @@ export function computeCategoryStats(bank: Bank, workspace: Workspace): Category
   for (const q of bank.questions) {
     const entry = ensure(q.category)
     entry.total += 1
-    const stat = workspace.stats[q.id]
+    const stat = statOf(workspace, bank.id, q.id)
     const mastery = masteryOf(stat)
     masterySums.set(q.category, (masterySums.get(q.category) ?? 0) + mastery)
     if (stat && stat.attempts > 0) {
@@ -152,7 +153,7 @@ export function computeDashboard(bank: Bank | null, workspace: Workspace, now = 
   let wrongBookCount = 0
 
   for (const q of bank?.questions ?? []) {
-    const stat = workspace.stats[q.id]
+    const stat = bank ? statOf(workspace, bank.id, q.id) : undefined
     const m = masteryOf(stat)
     masteryBuckets[m] += 1
     if (m > 0) attemptedQuestions += 1
@@ -193,7 +194,7 @@ export interface WrongEntry {
 export function collectWrongBook(bank: Bank, workspace: Workspace): WrongEntry[] {
   const entries: WrongEntry[] = []
   for (const q of bank.questions) {
-    const stat = workspace.stats[q.id]
+    const stat = statOf(workspace, bank.id, q.id)
     if (!isInWrongBook(stat)) continue
     entries.push({ question: q, stat: stat as QuestionStat, mastery: masteryOf(stat) })
   }

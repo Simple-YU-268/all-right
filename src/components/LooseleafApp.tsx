@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { ArrowRight, BookOpen, Refresh, Upload, Setting, Check } from '@icon-park/react'
 import type { Route } from '../App'
 import { useApp } from '../domain/store'
@@ -64,7 +64,7 @@ export function LooseleafApp({ route, onNavigate }: { route: Route; onNavigate: 
 }
 
 export function StudyDesk({ onNavigate }: { onNavigate: (route: Route) => void }) {
-  const { activeBank, workspace, startSession } = useApp()
+  const { activeBank, workspace, startSessionReplacing } = useApp()
   const data = useMemo(() => computeDashboard(activeBank, workspace), [activeBank, workspace])
   const wrong = useMemo(() => activeBank ? collectWrongBook(activeBank, workspace) : [], [activeBank, workspace])
   const [count, setCount] = useState('20')
@@ -74,7 +74,7 @@ export function StudyDesk({ onNavigate }: { onNavigate: (route: Route) => void }
     const size = count === '0' ? pool.length : Number(count)
     const session = buildSession(activeBank, { mode, category, count: size }, pool, newId('s'))
     if (!session.questionIds.length) return
-    startSession(session)
+    startSessionReplacing(session)
     onNavigate('practice')
   }
   if (!activeBank) return <Paper stock="paper" edge={{ bottom: 'deckle' }} tilt={false} className="study-welcome">

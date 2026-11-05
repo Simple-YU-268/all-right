@@ -20,6 +20,7 @@ import { Button } from '../vendor/looseleaf/ui/button'
 import { Icon as HandIcon } from '../vendor/looseleaf/ui/icon'
 import { Ink } from '../vendor/looseleaf/ink/react'
 import { handFrameRecipe } from './hand-frame'
+import { statOf } from '../domain/statKey'
 
 const COUNTS = [
   { value: 10, label: '10 题' },
@@ -57,6 +58,7 @@ function buildSummary(
   session: ActiveSession,
   questions: Question[],
   endedAt: number,
+  elapsedMs?: number,
 ): PracticeSummary | null {
   const results = Object.values(session.answers)
   const correct = results.filter((answer) => answer.correct).length
@@ -64,7 +66,8 @@ function buildSummary(
     total: results.length,
     correct,
     wrong: results.length - correct,
-    elapsedMs: (session.elapsedMs ?? 0) + (session.paused ? 0 : Math.max(0, endedAt - (session.clockAt ?? endedAt))),
+    elapsedMs: elapsedMs ?? (session.elapsedMs ?? 0) +
+      (session.paused ? 0 : Math.max(0, endedAt - (session.clockAt ?? endedAt))),
     mode: session.mode,
     category: session.category,
     wrongQuestions: questions
@@ -80,7 +83,8 @@ function buildSummary(
 export function Practice({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const [theme] = useTheme()
   const [paletteOpen, setPaletteOpen] = useState(() => window.innerWidth > 920)
-  const { session, workspace, updateSession, endSession, recordAttempt, clockSession, setActiveBank } = useApp()
+  const { session, workspace, updateSession, endSession, finishSession, recordAttempt, clockSession, setActiveBank,
+    sessionElapsed: readSessionElapsed, questionElapsed: readQuestionElapsed } = useApp()
   const activeBank = workspace.banks.find(bank => bank.id === (session?.bankId ?? workspace.activeBankId)) ?? null
   const [selected, setSelected] = useState<string[]>([])
   const [summary, setSummary] = useState<PracticeSummary | null>(null)
@@ -146,15 +150,26 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
     const jump = () => {
       setPending(null)
       if (target < 0) {
-        const data = buildSummary(session, questions, Date.now())
+        const data = buildSummary(session, questions, Date.now(), readSessionElapsed())
         if (!data) return
         setSummary(data)
+        finishSession({
+          id: session.id,
+          bankId: session.bankId,
+          mode: data.mode,
+          category: data.category,
+          startedAt: session.startedAt,
+          endedAt: Date.now(),
+          total: data.total,
+          answered: data.total,
+          correct: data.correct,
+          elapsedMs: data.elapsedMs,
+        })
         endSession()
         return
       }
-      const now = Date.now()
       setSelected(session.drafts?.[questions[target].id] ?? [])
-      updateSession({ ...session, index: target, questionStartedAt: now })
+      updateSession({ ...session, index: target })
     }
     const delay = pending.deadline - Date.now()
     if (delay <= 0) {
@@ -178,18 +193,34 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
     <p>{activeBank.name} · 已答 {Object.keys(session.answers).length} / {questions.length} 题</p>
     <div className="practice__answer-actions">
       <ThemedButton className="btn btn--primary" onClick={() => { setActiveBank(session.bankId); clockSession(false) }}>继续练习</ThemedButton>
-      <ThemedButton className="btn" onClick={() => { setSummary(buildSummary(session, questions, Date.now())); endSession() }}>结束并结算</ThemedButton>
+      <ThemedButton className="btn" onClick={() => {
+        const data = buildSummary(session, questions, Date.now(), readSessionElapsed())
+        if (!data) return
+        setSummary(data)
+        finishSession({
+          id: session.id,
+          bankId: session.bankId,
+          mode: data.mode,
+          category: data.category,
+          startedAt: session.startedAt,
+          endedAt: Date.now(),
+          total: data.total,
+          answered: data.total,
+          correct: data.correct,
+          elapsedMs: data.elapsedMs,
+        })
+        endSession()
+      }}>结束并结算</ThemedButton>
     </div>
   </StudyPaper></div></div>
 
   const answered = session.answers[current.id]
-  const stat = workspace.stats[current.id]
+  const stat = statOf(workspace, session.bankId, current.id)
   const mastery = masteryOf(stat)
   const answeredCount = Object.keys(session.answers).length
   const correctCount = Object.values(session.answers).filter((a) => a.correct).length
-  const elapsed = (session.elapsedMs ?? 0) + Math.max(0, Date.now() - (session.clockAt ?? Date.now()))
-  const questionElapsed = answered?.elapsedMs ??
-    (session.elapsedByQuestion?.[current.id] ?? 0) + Math.max(0, Date.now() - session.questionStartedAt)
+  const elapsed = readSessionElapsed()
+  const questionElapsed = readQuestionElapsed(current.id, answered?.elapsedMs)
   const remaining = pending ? Math.max(0, pending.deadline - Date.now()) : 0
   const allAnswered = answeredCount === questions.length
   const pendingTarget = pending ? pending.target : null
@@ -200,11 +231,28 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
   const showVerdict = verdictIndex >= 0 && verdictIndex !== session.index && !!verdict?.hasExplanation
 
   const finishNow = () => {
-    const data = buildSummary(session, questions, Date.now())
+    const data = buildSummary(session, questions, Date.now(), readSessionElapsed())
     if (!data) return
     setPending(null)
     setSummary(data)
+    finishWithHistory(data)
     endSession()
+  }
+
+  /** 结算并记一条练习历史：答了哪几道、对多少、花了多久。 */
+  const finishWithHistory = (data: PracticeSummary) => {
+    finishSession({
+      id: session.id,
+      bankId: session.bankId,
+      mode: data.mode,
+      category: data.category,
+      startedAt: session.startedAt,
+      endedAt: Date.now(),
+      total: data.total,
+      answered: data.total,
+      correct: data.correct,
+      elapsedMs: data.elapsedMs,
+    })
   }
 
   const toggle = (key: string) => {
@@ -229,11 +277,10 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
     if (index < 0 || index >= questions.length) return
     setPending(null)
     if (index === session.index) return
-    const now = Date.now()
     setSelected(session.answers[questions[index].id]?.chosen ?? session.drafts?.[questions[index].id] ?? [])
-    updateSession({ ...session, index, questionStartedAt: now,
+    /* 切题时把当前题的用时落进草稿，秒表会自己换起点。 */
+    updateSession({ ...session, index,
       drafts: { ...session.drafts, [current.id]: selected },
-      elapsedByQuestion: { ...session.elapsedByQuestion, [current.id]: answered?.elapsedMs ?? (session.elapsedByQuestion?.[current.id] ?? 0) + Math.max(0, now - session.questionStartedAt) },
     })
   }
 
@@ -241,7 +288,7 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
     if (!selected.length || revealed || missingImages) return
     const now = Date.now()
     const correct = isAnswerCorrect(current, selected)
-    const elapsedMs = (session.elapsedByQuestion?.[current.id] ?? 0) + Math.max(0, now - session.questionStartedAt)
+    const elapsedMs = readQuestionElapsed(current.id)
     recordAttempt({
       id: `${session.id}:${current.id}`,
       bankId: session.bankId,
@@ -254,7 +301,6 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
     const completed: ActiveSession = {
       ...session,
       answers: { ...session.answers, [current.id]: { chosen: selected, correct, elapsedMs } },
-      elapsedByQuestion: { ...session.elapsedByQuestion, [current.id]: elapsedMs },
     }
     updateSession(completed)
     /* 保存上一题的解析入口，再翻到下一道未答题。 */
@@ -580,7 +626,7 @@ export function Practice({ onNavigate }: { onNavigate: (route: Route) => void })
 }
 
 function Summary({ summary, onNavigate }: { summary: PracticeSummary; onNavigate: (route: Route) => void }) {
-  const { activeBank, workspace, startSession } = useApp()
+  const { activeBank, workspace, startSessionReplacing } = useApp()
   const accuracy = summary.total ? summary.correct / summary.total : null
   const average = summary.total ? Math.round(summary.elapsedMs / summary.total) : 0
 
@@ -597,7 +643,7 @@ function Summary({ summary, onNavigate }: { summary: PracticeSummary; onNavigate
       pool,
       newId('s'),
     )
-    startSession(session)
+    startSessionReplacing(session)
   }
 
   return (
@@ -719,7 +765,7 @@ const MODES = [
 ]
 
 function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
-  const { activeBank, workspace, startSession } = useApp()
+  const { activeBank, workspace, startSessionReplacing } = useApp()
   const [mode, setMode] = useState<SessionMode>('random')
   const [count, setCount] = useState(20)
   const [chapterStart, setChapterStart] = useState<'continue' | 'restart'>('continue')
@@ -727,15 +773,16 @@ function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const categories = useMemo(
     () => {
       const chapters = new Map<string, { name: string; total: number; practiced: number }>()
-      for (const question of activeBank?.questions ?? []) {
+      if (!activeBank) return []
+      for (const question of activeBank.questions) {
         const chapter = chapters.get(question.category) ?? { name: question.category, total: 0, practiced: 0 }
         chapter.total += 1
-        if (workspace.stats[question.id]?.attempts) chapter.practiced += 1
+        if (statOf(workspace, activeBank.id, question.id)?.attempts) chapter.practiced += 1
         chapters.set(question.category, chapter)
       }
       return [...chapters.values()]
     },
-    [activeBank, workspace.stats],
+    [activeBank, workspace],
   )
   const wrongPool = useMemo(
     () => (activeBank ? collectWrongBook(activeBank, workspace) : []),
@@ -784,7 +831,7 @@ function PracticeStart({ onNavigate }: { onNavigate: (route: Route) => void }) {
       newId('s'),
     )
     if (!session.questionIds.length) return
-    startSession(session, chapterStart === 'restart')
+    startSessionReplacing(session, chapterStart === 'restart')
   }
 
   const canStart = pool.length > 0

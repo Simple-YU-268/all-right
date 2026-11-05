@@ -1,12 +1,14 @@
-import { ThemedButton } from './ThemedButton'
+﻿import { ThemedButton } from './ThemedButton'
 import { useMemo, useState } from 'react'
 import { Check, Time as Clock, Refresh as RefreshCw } from '@icon-park/react'
 import { useApp } from '../domain/store'
 import { collectWrongBook, formatPercent, masteryOf } from '../domain/stats'
+import { statOf } from '../domain/statKey'
 import { buildSession, newId } from '../domain/session'
 import type { Route } from '../App'
 import { EmptyState, MasteryMark, QuestionTypeMark } from './bits'
 import { QuestionContent } from './QuestionContent'
+import type { Bank, Mastery, QuestionStat } from '../domain/types'
 
 type SortKey = 'wrong' | 'recent' | 'category'
 
@@ -17,16 +19,28 @@ const SORTS = [
 ]
 
 export function WrongBook({ onNavigate }: { onNavigate: (route: Route) => void }) {
-  const { workspace, activeBank, startSession, removeFromWrongBook } = useApp()
+  const { workspace, activeBank, startSessionReplacing, removeFromWrongBook } = useApp()
   const [category, setCategory] = useState('')
   const [sort, setSort] = useState<SortKey>('wrong')
   const [scope, setScope] = useState('pending')
   const [selected, setSelected] = useState<string[]>([])
 
   const entries = useMemo(
-    () => (activeBank ? scope === 'history' ? activeBank.questions.filter(question => workspace.stats[question.id]?.wrongCount > 0)
-      .map(question => ({ question, stat: workspace.stats[question.id], mastery: masteryOf(workspace.stats[question.id]) }))
-      : collectWrongBook(activeBank, workspace).filter(entry => scope !== 'repeat' || entry.stat.wrongCount >= 2) : []),
+    () => {
+      if (!activeBank) return []
+      if (scope !== 'history') {
+        return collectWrongBook(activeBank, workspace)
+          .filter(entry => scope !== 'repeat' || entry.stat.wrongCount >= 2)
+      }
+      /* 历史错题：只要答错过就算，答对过也留着。 */
+      const history: { question: Bank['questions'][number]; stat: QuestionStat; mastery: Mastery }[] = []
+      for (const question of activeBank.questions) {
+        const stat = statOf(workspace, activeBank.id, question.id)
+        if (!stat?.wrongCount) continue
+        history.push({ question, stat, mastery: masteryOf(stat) })
+      }
+      return history
+    },
     [activeBank, workspace, scope],
   )
   const categories = useMemo(() => [...new Set(entries.map((e) => e.question.category))], [entries])
@@ -56,7 +70,7 @@ export function WrongBook({ onNavigate }: { onNavigate: (route: Route) => void }
       (selectedShown.length ? selectedShown : shown).map((e) => e.question),
       newId('s'),
     )
-    startSession(session)
+    startSessionReplacing(session)
     onNavigate('practice')
   }
 
@@ -70,7 +84,7 @@ export function WrongBook({ onNavigate }: { onNavigate: (route: Route) => void }
       [question],
       newId('s'),
     )
-    startSession(session)
+    startSessionReplacing(session)
     onNavigate('practice')
   }
 
@@ -237,7 +251,7 @@ export function WrongBook({ onNavigate }: { onNavigate: (route: Route) => void }
                             type="button"
                             className="btn btn--sm btn--ghost"
                             disabled={last.consecutiveCorrect > 0}
-                            onClick={() => removeFromWrongBook(entry.question.id)}
+                            onClick={() => removeFromWrongBook(entry.question.id, activeBank.id)}
                           >
                             <Check size={13} strokeWidth={2} />
                             {last.consecutiveCorrect > 0 ? '已复习' : '移出'}

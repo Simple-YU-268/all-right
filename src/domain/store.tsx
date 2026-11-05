@@ -4,15 +4,28 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
-import { type AssetMeta, type AttemptRecord, type Bank, type SessionMode, type Workspace } from './types'
+import { type AssetMeta, type AttemptRecord, type Bank, type SessionMode, type SessionRecord, type Workspace } from './types'
 import { saveWorkspace } from './storage'
+import { confirmAction } from './shell'
 import { saveChapter, deleteChapter, importChapters, type ChapterChange, type ChapterImport } from './chapters'
 import { pruneAssetsExcept, referencedAssetIds } from './assets'
 import { questionAssetIds } from './content'
 import { buildSession, remainingChapterQuestions } from './session'
+import { bankStatKeys, legacyStatOf, migrateStats, statKey } from './statKey'
+import {
+  commitClock,
+  createClock,
+  currentQuestionElapsed,
+  sessionElapsed,
+  setPaused,
+  switchQuestion,
+  tickClock,
+  type SessionClock,
+} from './sessionClock'
 
 export interface ActiveSession {
   id: string
@@ -87,29 +100,17 @@ type Action =
   | { type: 'deleteChapter'; bankId: string; category: string }
   | { type: 'setActiveBank'; bankId: string }
   | { type: 'recordAttempt'; attempt: AttemptRecord }
-  | { type: 'removeFromWrongBook'; questionId: string }
+  | { type: 'removeFromWrongBook'; questionId: string; bankId: string; key: string }
   | { type: 'resetBank'; bankId: string }
   | { type: 'replaceWorkspace'; workspace: Workspace }
   | { type: 'startSession'; session: ActiveSession }
   | { type: 'updateSession'; session: ActiveSession }
   | { type: 'endSession' }
-  | { type: 'clockSession'; paused?: boolean }
+  | { type: 'setPaused'; paused: boolean }
+  | { type: 'finishSession'; record: SessionRecord }
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
-    case 'clockSession': {
-      if (!state.session) return state
-      const session = state.session
-      const now = Date.now()
-      const delta = session.paused ? 0 : Math.max(0, now - (session.clockAt ?? now))
-      const id = session.questionIds[session.index]
-      return { ...state, session: { ...session, paused: action.paused ?? session.paused, clockAt: now,
-        elapsedMs: (session.elapsedMs ?? 0) + delta,
-        questionStartedAt: now,
-        elapsedByQuestion: { ...session.elapsedByQuestion, [id]: session.answers[id]?.elapsedMs ??
-          (session.elapsedByQuestion?.[id] ?? 0) + (session.paused ? 0 : Math.max(0, now - session.questionStartedAt)) },
-      } }
-    }
     case 'saveChapter':
     case 'importChapters':
     case 'deleteChapter': {
@@ -142,11 +143,13 @@ function reducer(state: State, action: Action): State {
       }
     case 'removeBank': {
       const banks = state.workspace.banks.filter((b) => b.id !== action.bankId)
-      const questionIds = new Set(
+      const stats = { ...state.workspace.stats }
+      for (const key of bankStatKeys(state.workspace, action.bankId)) delete stats[key]
+      /* 老数据里没有题库维度的键：这个题库的题号清干净。 */
+      const removedIds = new Set(
         state.workspace.banks.find((b) => b.id === action.bankId)?.questions.map((q) => q.id) ?? [],
       )
-      const stats = { ...state.workspace.stats }
-      for (const id of questionIds) delete stats[id]
+      for (const id of removedIds) delete stats[id]
       return {
         ...state,
         workspace: {
@@ -175,7 +178,8 @@ function reducer(state: State, action: Action): State {
     case 'recordAttempt': {
       const { attempt } = action
       if (state.workspace.attempts.some(existing => existing.id === attempt.id)) return state
-      const prev = state.workspace.stats[attempt.questionId]
+      const key = statKey(attempt.bankId, attempt.questionId)
+      const prev = state.workspace.stats[key] ?? legacyStatOf(state.workspace, attempt.bankId, attempt.questionId)
       const consecutiveCorrect = attempt.correct ? (prev?.consecutiveCorrect ?? 0) + 1 : 0
       return {
         ...state,
@@ -184,7 +188,7 @@ function reducer(state: State, action: Action): State {
           attempts: [...state.workspace.attempts, attempt],
           stats: {
             ...state.workspace.stats,
-            [attempt.questionId]: {
+            [key]: {
               questionId: attempt.questionId,
               attempts: (prev?.attempts ?? 0) + 1,
               correctCount: (prev?.correctCount ?? 0) + (attempt.correct ? 1 : 0),
@@ -198,7 +202,7 @@ function reducer(state: State, action: Action): State {
       }
     }
     case 'removeFromWrongBook': {
-      const prev = state.workspace.stats[action.questionId]
+      const prev = state.workspace.stats[action.key] ?? legacyStatOf(state.workspace, action.bankId, action.questionId)
       if (!prev) return state
       return {
         ...state,
@@ -206,7 +210,7 @@ function reducer(state: State, action: Action): State {
           ...state.workspace,
           stats: {
             ...state.workspace.stats,
-            [action.questionId]: {
+            [action.key]: {
               ...prev,
               consecutiveCorrect: Math.max(1, prev.consecutiveCorrect),
             },
@@ -215,11 +219,12 @@ function reducer(state: State, action: Action): State {
       }
     }
     case 'resetBank': {
-      const questionIds = new Set(
+      const stats = { ...state.workspace.stats }
+      for (const key of bankStatKeys(state.workspace, action.bankId)) delete stats[key]
+      const resetIds = new Set(
         state.workspace.banks.find((b) => b.id === action.bankId)?.questions.map((q) => q.id) ?? [],
       )
-      const stats = { ...state.workspace.stats }
-      for (const id of questionIds) delete stats[id]
+      for (const id of resetIds) delete stats[id]
       return {
         ...state,
         workspace: {
@@ -233,12 +238,25 @@ function reducer(state: State, action: Action): State {
     case 'replaceWorkspace':
       return { ...state, workspace: action.workspace, session: restoreSession(action.workspace) }
     case 'startSession':
-      if (state.session) return state
       return { ...state, session: action.session, workspace: { ...state.workspace, activeBankId: action.session.bankId } }
     case 'updateSession':
       return { ...state, session: action.session }
     case 'endSession':
       return { ...state, session: null }
+    case 'setPaused':
+      /* 暂停要落盘：关掉软件再打开时不该把看不见的时间算成答题时间。 */
+      if (!state.session) return state
+      if (!!state.session.paused === action.paused) return state
+      return { ...state, session: { ...state.session, paused: action.paused } }
+    case 'finishSession':
+      /* 练习历史：每次结算留一条，题库被删时一起清掉。 */
+      return {
+        ...state,
+        workspace: {
+          ...state.workspace,
+          sessions: [action.record, ...state.workspace.sessions.filter(record => record.id !== action.record.id)].slice(0, 200),
+        },
+      }
     default:
       return state
   }
@@ -256,13 +274,22 @@ export interface AppApi {
   deleteChapter: (bankId: string, category: string) => void
   setActiveBank: (bankId: string) => void
   recordAttempt: (attempt: AttemptRecord) => void
-  removeFromWrongBook: (questionId: string) => void
+  removeFromWrongBook: (questionId: string, bankId: string) => void
   resetBank: (bankId: string) => void
   replaceWorkspace: (workspace: Workspace) => void
-  startSession: (session: ActiveSession, fromStart?: boolean) => void
+  /**
+   * 开一组新练习前确认替换，取消时保留原进度和草稿。
+   */
+  startSessionReplacing: (session: ActiveSession, fromStart?: boolean) => void
   updateSession: (session: ActiveSession) => void
   endSession: () => void
+  /** 结算并记一条练习历史。 */
+  finishSession: (record: SessionRecord) => void
   clockSession: (paused?: boolean) => void
+  /** 本次练习累计毫秒（走表中的实时值）。 */
+  sessionElapsed: () => number
+  /** 某道题已经走了多久。 */
+  questionElapsed: (questionId: string, answeredMs?: number) => number
 }
 
 const AppContext = createContext<AppApi | null>(null)
@@ -270,14 +297,23 @@ const AppContext = createContext<AppApi | null>(null)
 export function AppProvider({ children, initialWorkspace }: { children: ReactNode; initialWorkspace: Workspace }) {
   const [sessionNotice, setSessionNotice] = useState<string | null>(null)
   const [storageError, setStorageError] = useState<string | null>(null)
-  const [state, dispatch] = useReducer(reducer, undefined, () => ({
-    workspace: initialWorkspace,
-    session: restoreSession(initialWorkspace),
-  }))
+  const [state, dispatch] = useReducer(reducer, undefined, () => {
+    /* 老工作区的统计键里没有题库，先迁移到新格式。 */
+    const workspace = migrateStats(initialWorkspace)
+    return { workspace, session: restoreSession(workspace) }
+  })
+  /* 秒表独立于工作区状态：它每秒动一次，但不该每秒触发一次整份写盘。 */
+  const clockRef = useRef<SessionClock | null>(null)
+  const sessionRef = useRef<ActiveSession | null>(state.session)
+  sessionRef.current = state.session
+  if (state.session && !clockRef.current) clockRef.current = createClock(state.session)
+  if (!state.session) clockRef.current = null
 
   useEffect(() => {
     let active = true
-    void saveWorkspace({ ...state.workspace, activeSession: state.session }).then(
+    const clock = clockRef.current
+    const session = state.session && clock ? commitClock(clock, state.session) : state.session
+    void saveWorkspace({ ...state.workspace, activeSession: session }).then(
       () => { if (active) setStorageError(null) },
       (error: unknown) => { if (active) setStorageError(`保存失败，请先导出备份：${String(error)}`) },
     )
@@ -285,7 +321,10 @@ export function AppProvider({ children, initialWorkspace }: { children: ReactNod
   }, [state.workspace, state.session])
 
   useEffect(() => {
-    const pause = () => dispatch({ type: 'clockSession', paused: true })
+    /* 关掉页面前把秒表停住，别把看不见的时间算成答题时间。 */
+    const pause = () => {
+      if (clockRef.current) clockRef.current = setPaused(clockRef.current, true)
+    }
     window.addEventListener('pagehide', pause)
     return () => window.removeEventListener('pagehide', pause)
   }, [])
@@ -330,13 +369,28 @@ export function AppProvider({ children, initialWorkspace }: { children: ReactNod
       },
       setActiveBank: (bankId) => dispatch({ type: 'setActiveBank', bankId }),
       recordAttempt: (attempt) => dispatch({ type: 'recordAttempt', attempt }),
-      removeFromWrongBook: (questionId) => dispatch({ type: 'removeFromWrongBook', questionId }),
+      removeFromWrongBook: (questionId, bankId) => dispatch({
+        type: 'removeFromWrongBook',
+        questionId,
+        bankId,
+        key: statKey(bankId, questionId),
+      }),
       resetBank: (bankId) => dispatch({ type: 'resetBank', bankId }),
       replaceWorkspace: (workspace) => {
+        workspace = migrateStats(workspace)
+        const restored = restoreSession(workspace)
+        clockRef.current = restored ? createClock(restored) : null
         dispatch({ type: 'replaceWorkspace', workspace })
         void pruneAssetsExcept(referencedAssetIds(workspace))
       },
-      startSession: (session, fromStart = false) => {
+      startSessionReplacing: async (session, fromStart = false) => {
+        const replaced = sessionRef.current
+        if (replaced) {
+          const answered = Object.keys(replaced.answers).length
+          if (!await confirmAction(`还有一组未完成练习（已答 ${answered} / ${replaced.questionIds.length} 题）。开始新练习将替换它，未提交的选项将不再保留；已提交的作答记录不受影响。是否开始新练习？`)) return
+          // 确认期间若已切换或结束练习，不覆盖更新后的进度。
+          if (sessionRef.current?.id !== replaced.id) return
+        }
         const bank = state.workspace.banks.find(bank => bank.id === session.bankId)
         if (bank && session.mode !== 'wrong' && !fromStart) {
           const remaining = remainingChapterQuestions(bank, session.mode === 'category' ? session.category : null, state.workspace)
@@ -344,11 +398,43 @@ export function AppProvider({ children, initialWorkspace }: { children: ReactNod
             session = buildSession(bank, { mode: session.mode, category: session.category, count: session.questionIds.length }, remaining, session.id)
           }
         }
+        /* 旧的��组已经答过的题记在 attempts 里，不会白答；这里只提示一下。 */
+        if (replaced) {
+          const answered = Object.keys(replaced.answers).length
+          setSessionNotice(answered
+            ? `已结束上一组练习（已答 ${answered} 题，记录已保留），开始新的练习。`
+            : '已结束上一组练习，开始新的练习。')
+        }
+        clockRef.current = createClock(session)
         dispatch({ type: 'startSession', session })
       },
-      updateSession: (session) => dispatch({ type: 'updateSession', session }),
+      updateSession: (session) => {
+        /* 切题会改「当前题」，秒表要跟着换起点，再落盘。 */
+        const previous = sessionRef.current
+        const previousId = previous ? previous.questionIds[previous.index] : null
+        const nextId = session.questionIds[session.index]
+        if (clockRef.current && previousId && previousId !== nextId) {
+          clockRef.current = switchQuestion(clockRef.current, previousId)
+        }
+        dispatch({ type: 'updateSession', session: clockRef.current ? commitClock(clockRef.current, session) : session })
+      },
       endSession: () => dispatch({ type: 'endSession' }),
-      clockSession: (paused) => dispatch({ type: 'clockSession', paused }),
+      finishSession: (record) => dispatch({ type: 'finishSession', record }),
+      clockSession: (paused) => {
+        if (!clockRef.current) return
+        if (paused === undefined) {
+          clockRef.current = tickClock(clockRef.current)
+          return
+        }
+        const current = state.session
+        const currentId = current ? current.questionIds[current.index] : undefined
+        clockRef.current = setPaused(clockRef.current, paused, currentId)
+        /* 暂停/继续会改变计时口径，落盘一次。 */
+        dispatch({ type: 'setPaused', paused })
+      },
+      sessionElapsed: () => (clockRef.current ? sessionElapsed(clockRef.current) : 0),
+      questionElapsed: (questionId, answeredMs) =>
+        (clockRef.current ? currentQuestionElapsed(clockRef.current, questionId, answeredMs) : answeredMs ?? 0),
     }),
     [state.workspace, state.session, activeBank],
   )
